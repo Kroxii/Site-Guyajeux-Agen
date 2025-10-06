@@ -1,0 +1,214 @@
+const mongoose = require('mongoose');
+const tournamentSchema = new mongoose.Schema({
+  name: {
+    type: String,
+    required: [true, 'Le nom du tournoi est requis'],
+    trim: true,
+    maxlength: [200, 'Le nom ne peut pas dépasser 200 caractères']
+  },
+  description: {
+    type: String,
+    trim: true,
+    maxlength: [1000, 'La description ne peut pas dépasser 1000 caractères']
+  },
+  game: {
+    type: String,
+    required: [true, 'Le jeu est requis'],
+    trim: true,
+    maxlength: [100, 'Le nom du jeu ne peut pas dépasser 100 caractères']
+  },
+  date: {
+    type: Date,
+    required: [true, 'La date du tournoi est requise']
+  },
+  maxPlayers: {
+    type: Number,
+    required: [true, 'Le nombre maximum de joueurs est requis'],
+    min: [2, 'Il faut au moins 2 joueurs'],
+    max: [100, 'Maximum 100 joueurs autorisés']
+  },
+  currentPlayers: {
+    type: Number,
+    default: 0,
+    min: 0
+  },
+  status: {
+    type: String,
+    enum: ['planned', 'registration_open', 'registration_closed', 'in_progress', 'completed', 'cancelled'],
+    default: 'registration_open'
+  },
+  prize: {
+    type: String,
+    trim: true
+  },
+  entryFee: {
+    type: Number,
+    default: 0,
+    min: 0
+  },
+  location: {
+    address: {
+      type: String,
+      trim: true
+    },
+    room: {
+      type: String,
+      trim: true
+    }
+  },
+  rules: {
+    type: String,
+    trim: true
+  },
+  format: {
+    type: String,
+    trim: true
+  },
+  createdBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: true
+  },
+  participants: [{
+    user: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      required: true
+    },
+    registrationDate: {
+      type: Date,
+      default: Date.now
+    },
+    status: {
+      type: String,
+      enum: ['registered', 'confirmed', 'cancelled', 'no_show'],
+      default: 'registered'
+    }
+  }],
+  waitingList: [{
+    user: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      required: true
+    },
+    registrationDate: {
+      type: Date,
+      default: Date.now
+    }
+  }],
+  results: [{
+    user: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User'
+    },
+    position: {
+      type: Number,
+      min: 1
+    },
+    points: {
+      type: Number,
+      default: 0
+    },
+    prize: {
+      type: String
+    }
+  }],
+  tags: [{
+    type: String,
+    trim: true
+  }],
+  isPublic: {
+    type: Boolean,
+    default: true
+  },
+  registrationDeadline: {
+    type: Date
+  }
+}, {
+  timestamps: true
+});
+// Index pour optimiser les recherches
+tournamentSchema.index({ date: 1 });
+tournamentSchema.index({ game: 1 });
+tournamentSchema.index({ status: 1 });
+tournamentSchema.index({ createdBy: 1 });
+tournamentSchema.index({ 'participants.user': 1 });
+// Middleware pour mettre à jour le nombre de participants
+tournamentSchema.pre('save', function(next) {
+  this.currentPlayers = this.participants.filter(p => p.status === 'registered' || p.status === 'confirmed').length;
+  next();
+});
+// Méthode pour vérifier si un utilisateur peut s'inscrire
+tournamentSchema.methods.canUserRegister = function(userId) {
+  // Vérifier si le tournoi n'est pas complet
+  if (this.currentPlayers >= this.maxPlayers) {
+    return { canRegister: false, reason: 'Tournoi complet' };
+  }
+  // Vérifier si l'utilisateur n'est pas déjà inscrit
+  const isAlreadyRegistered = this.participants.some(p => 
+    p.user.toString() === userId.toString() && 
+    (p.status === 'registered' || p.status === 'confirmed')
+  );
+  if (isAlreadyRegistered) {
+    return { canRegister: false, reason: 'Déjà inscrit' };
+  }
+  // Vérifier si la date d'inscription n'est pas dépassée
+  if (this.registrationDeadline && new Date() > this.registrationDeadline) {
+    return { canRegister: false, reason: 'Date limite d\'inscription dépassée' };
+  }
+  // Vérifier si le tournoi n'est pas dans le passé
+  if (new Date() > this.date) {
+    return { canRegister: false, reason: 'Tournoi déjà passé' };
+  }
+  return { canRegister: true };
+};
+// Méthode pour inscrire un utilisateur
+tournamentSchema.methods.registerUser = function(userId) {
+  const canRegister = this.canUserRegister(userId);
+  if (!canRegister.canRegister) {
+    throw new Error(canRegister.reason);
+  }
+  this.participants.push({
+    user: userId,
+    registrationDate: new Date(),
+    status: 'registered'
+  });
+  return this.save();
+};
+// Méthode pour désinscrire un utilisateur
+tournamentSchema.methods.unregisterUser = function(userId) {
+  const participantIndex = this.participants.findIndex(p => 
+    p.user.toString() === userId.toString() && 
+    (p.status === 'registered' || p.status === 'confirmed')
+  );
+  if (participantIndex === -1) {
+    throw new Error('Utilisateur non inscrit à ce tournoi');
+  }
+  this.participants.splice(participantIndex, 1);
+  // Si il y a une liste d'attente, promouvoir le premier
+  if (this.waitingList.length > 0) {
+    const nextUser = this.waitingList.shift();
+    this.participants.push({
+      user: nextUser.user,
+      registrationDate: new Date(),
+      status: 'registered'
+    });
+  }
+  return this.save();
+};
+// Méthode statique pour trouver les tournois à venir
+tournamentSchema.statics.findUpcoming = function() {
+  return this.find({
+    date: { $gt: new Date() },
+    status: { $in: ['planned', 'registration_open'] }
+  }).sort({ date: 1 });
+};
+// Méthode statique pour trouver les tournois par jeu
+tournamentSchema.statics.findByGame = function(game) {
+  return this.find({ 
+    game: new RegExp(game, 'i'),
+    isPublic: true 
+  });
+};
+module.exports = mongoose.model('Tournament', tournamentSchema);
+

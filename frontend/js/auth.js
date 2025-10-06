@@ -1,0 +1,165 @@
+// L'authentification se fait maintenant via l'API backend
+const api = new ApiService();
+
+// Vérifier l'authentification au chargement
+async function checkAuth() {
+    const token = localStorage.getItem('authToken');
+    const savedUser = localStorage.getItem('currentUser');
+    
+    if (token && savedUser) {
+        try {
+            // Vérifier si le token est toujours valide
+            currentUser = await api.getCurrentUser();
+            localStorage.setItem('currentUser', JSON.stringify(currentUser));
+            updateAuthUI();
+        } catch (error) {
+            console.error('Token invalide:', error);
+            // Token invalide, déconnecter l'utilisateur
+            await api.logout();
+        }
+    } else {
+        currentUser = null;
+        updateAuthUI();
+    }
+}
+// Mettre à jour l'interface utilisateur selon l'état de connexion
+function updateAuthUI() {
+    const authButtons = document.getElementById('authButtons');
+    const userMenu = document.getElementById('userMenu');
+    const userName = document.getElementById('userName');
+    const adminBtn = document.getElementById('adminBtn');
+    if (currentUser) {
+        // Utilisateur connecté
+        authButtons.style.display = 'none';
+        userMenu.style.display = 'flex';
+        userName.textContent = currentUser.name;
+        // Afficher le bouton admin si l'utilisateur est administrateur
+        if (currentUser.isAdmin) {
+            adminBtn.style.display = 'block';
+        } else {
+            adminBtn.style.display = 'none';
+        }
+    } else {
+        // Utilisateur non connecté
+        authButtons.style.display = 'flex';
+        userMenu.style.display = 'none';
+    }
+}
+// Fonction de connexion
+async function login(event) {
+    event.preventDefault();
+    const email = document.getElementById('loginEmail').value;
+    const password = document.getElementById('loginPassword').value;
+    
+    if (!email || !password) {
+        showMessage('Veuillez remplir tous les champs', 'error');
+        return;
+    }
+    
+    try {
+        const response = await api.login(email, password);
+        
+        if (response.success) {
+            currentUser = response.data.user;
+            showMessage('Connexion réussie !', 'success');
+            updateAuthUI();
+            
+            // Recharger les données
+            await loadData();
+            
+            setTimeout(() => {
+                showSection('home');
+            }, 1500);
+            
+            document.getElementById('loginEmail').value = '';
+            document.getElementById('loginPassword').value = '';
+        }
+    } catch (error) {
+        console.error('Erreur de connexion:', error);
+        showMessage('Email ou mot de passe incorrect', 'error');
+    }
+}
+// Fonction d'inscription
+async function register(event) {
+    event.preventDefault();
+    const name = document.getElementById('registerName').value;
+    const email = document.getElementById('registerEmail').value;
+    const password = document.getElementById('registerPassword').value;
+    const confirmPassword = document.getElementById('confirmPassword').value;
+    
+    if (!name || !email || !password || !confirmPassword) {
+        showMessage('Veuillez remplir tous les champs', 'error');
+        return;
+    }
+    if (password !== confirmPassword) {
+        showMessage('Les mots de passe ne correspondent pas', 'error');
+        return;
+    }
+    if (password.length < 6) {
+        showMessage('Le mot de passe doit contenir au moins 6 caractères', 'error');
+        return;
+    }
+    
+    try {
+        const response = await api.register(name, email, password);
+        
+        if (response.success) {
+            currentUser = response.data.user;
+            showMessage('Compte créé avec succès !', 'success');
+            updateAuthUI();
+            
+            // Recharger les données
+            await loadData();
+            
+            setTimeout(() => {
+                showSection('home');
+            }, 1500);
+            
+            document.getElementById('registerName').value = '';
+            document.getElementById('registerEmail').value = '';
+            document.getElementById('registerPassword').value = '';
+            document.getElementById('confirmPassword').value = '';
+        }
+    } catch (error) {
+        console.error('Erreur d\'inscription:', error);
+        showMessage('Erreur lors de l\'inscription: ' + error.message, 'error');
+    }
+}
+// Fonction de déconnexion
+async function logout() {
+    try {
+        await api.logout();
+        showMessage('Déconnexion réussie', 'success');
+    } catch (error) {
+        console.error('Erreur lors de la déconnexion:', error);
+        // Forcer la déconnexion locale même en cas d'erreur
+        currentUser = null;
+        localStorage.removeItem('authToken');
+        localStorage.removeItem('currentUser');
+        updateAuthUI();
+    }
+    
+    showSection('home');
+}
+// Validation en temps réel pour l'inscription
+document.addEventListener('DOMContentLoaded', function() {
+    const confirmPasswordField = document.getElementById('confirmPassword');
+    const passwordField = document.getElementById('registerPassword');
+    if (confirmPasswordField && passwordField) {
+        confirmPasswordField.addEventListener('input', function() {
+            if (this.value && passwordField.value && this.value !== passwordField.value) {
+                this.setCustomValidity('Les mots de passe ne correspondent pas');
+            } else {
+                this.setCustomValidity('');
+            }
+        });
+        passwordField.addEventListener('input', function() {
+            if (confirmPasswordField.value && this.value && confirmPasswordField.value !== this.value) {
+                confirmPasswordField.setCustomValidity('Les mots de passe ne correspondent pas');
+            } else {
+                confirmPasswordField.setCustomValidity('');
+            }
+        });
+    }
+});
+

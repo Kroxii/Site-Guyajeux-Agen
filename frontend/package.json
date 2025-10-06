@@ -1,0 +1,26 @@
+{
+  "name": "guyajeux-agen-frontend",
+  "version": "1.0.0",
+  "description": "Frontend pour le système de gestion des tournois Guyajeux Agen",
+  "main": "index.html",
+  "scripts": {
+    "start": "serve -s . -l 3000",
+    "dev": "serve -s . -l 3000",
+    "build": "echo \"Frontend build - copying files to dist\" && npm run copy-files",
+    "copy-files": "mkdir -p dist && cp -r * dist/",
+    "test": "echo \"No tests specified for frontend yet\"",
+    "serve": "serve -s . -l 3000"
+  },
+  "devDependencies": {
+    "serve": "^14.2.1",
+    "http-server": "^14.1.1"
+  },
+  "keywords": ["frontend", "html", "css", "javascript", "tournois"],
+  "author": "Guyajeux Agen",
+  "license": "ISC",
+  "browserslist": [
+    "> 1%",
+    "last 2 versions",
+    "not dead"
+  ]
+}
