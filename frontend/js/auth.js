@@ -91,6 +91,14 @@ async function register(event) {
         showMessage('Veuillez remplir tous les champs', 'error');
         return;
     }
+    
+    // Validation email basique
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+        showMessage('Veuillez saisir une adresse email valide', 'error');
+        return;
+    }
+    
     if (password !== confirmPassword) {
         showMessage('Les mots de passe ne correspondent pas', 'error');
         return;

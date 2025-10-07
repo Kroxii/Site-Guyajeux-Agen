@@ -19,12 +19,42 @@ async function createTournament(event) {
         showMessage('Le nombre minimum de joueurs est 2', 'error');
         return;
     }
+    if (maxPlayers > 100) {
+        showMessage('Le nombre maximum de joueurs est 100', 'error');
+        return;
+    }
     
-    // Vérifier que la date n'est pas dans le passé
+    // Validation de date améliorée
     const tournamentDate = new Date(date);
     const now = new Date();
-    if (tournamentDate < now) {
-        showMessage('La date du tournoi ne peut pas être dans le passé', 'error');
+    const oneHourFromNow = new Date(now.getTime() + 60 * 60 * 1000);
+    const oneYearFromNow = new Date(now.getTime() + 365 * 24 * 60 * 60 * 1000);
+    
+    // Vérifier que la date est valide
+    if (isNaN(tournamentDate.getTime())) {
+        showMessage('Date invalide', 'error');
+        return;
+    }
+    
+    // Vérifier que la date n'est pas dans le passé (avec marge d'1 heure)
+    if (tournamentDate < oneHourFromNow) {
+        showMessage('Le tournoi doit être programmé au moins 1 heure à l\'avance', 'error');
+        return;
+    }
+    
+    // Vérifier que la date n'est pas trop éloignée (max 1 an)
+    if (tournamentDate > oneYearFromNow) {
+        showMessage('Le tournoi ne peut pas être programmé plus d\'un an à l\'avance', 'error');
+        return;
+    }
+    
+    // Vérifier qu'il n'y a pas déjà un tournoi avec le même nom à la même date
+    const existingTournament = tournaments.find(t => 
+        t.name.toLowerCase() === name.toLowerCase() && 
+        new Date(t.date).toDateString() === tournamentDate.toDateString()
+    );
+    if (existingTournament) {
+        showMessage('Un tournoi avec ce nom existe déjà à cette date', 'error');
         return;
     }
     

@@ -159,7 +159,7 @@ function openTournamentCreationModal(day, month, year) {
     showModal();
 }
 // Créer un tournoi depuis le calendrier
-function createTournamentFromCalendar(event) {
+async function createTournamentFromCalendar(event) {
     event.preventDefault();
     if (!currentUser || !currentUser.isAdmin) {
         showMessage('Accès refusé', 'error');
@@ -170,24 +170,48 @@ function createTournamentFromCalendar(event) {
     const maxPlayers = parseInt(document.getElementById('quickTournamentMaxPlayers').value);
     const game = document.getElementById('quickTournamentGame').value;
     const description = document.getElementById('quickTournamentDescription').value;
+    
     if (!name || !date || !maxPlayers || !game) {
         showMessage('Veuillez remplir tous les champs obligatoires', 'error');
         return;
     }
-    const tournament = {
-        id: 'tournament-' + Date.now(),
+
+    // Validation de date
+    const tournamentDate = new Date(date);
+    const now = new Date();
+    const oneHourFromNow = new Date(now.getTime() + 60 * 60 * 1000);
+
+    if (tournamentDate < oneHourFromNow) {
+        showMessage('Le tournoi doit être programmé au moins 1 heure à l\'avance', 'error');
+        return;
+    }
+    
+    const tournamentData = {
         name: name,
         date: date,
         maxPlayers: maxPlayers,
-        currentPlayers: 0,
         game: game,
-        description: description,
-        participants: []
+        description: description
     };
-    tournaments.push(tournament);
-    saveData();
-    showMessage('Tournoi créé avec succès !', 'success');
-    closeModal();
+    
+    try {
+        const response = await api.createTournament(tournamentData);
+        if (response.success) {
+            showMessage('Tournoi créé avec succès !', 'success');
+            await loadData(); // Recharger les données depuis l'API
+            renderCalendar(); // Rafraîchir le calendrier
+            closeModal();
+            // Réinitialiser le formulaire
+            document.getElementById('quickTournamentName').value = '';
+            document.getElementById('quickTournamentDate').value = '';
+            document.getElementById('quickTournamentMaxPlayers').value = '';
+            document.getElementById('quickTournamentGame').value = '';
+            document.getElementById('quickTournamentDescription').value = '';
+        }
+    } catch (error) {
+        console.error('Erreur lors de la création du tournoi:', error);
+        showMessage('Erreur lors de la création du tournoi: ' + error.message, 'error');
+    }
     renderCalendar();
     // Mettre à jour les autres sections si nécessaires
     if (document.getElementById('home').classList.contains('active')) {

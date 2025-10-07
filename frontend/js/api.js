@@ -26,9 +26,24 @@ class ApiService {
       return data;
     } catch (error) {
       console.error(`Erreur API (${endpoint}):`, error);
-      if (error.message.includes('401') || error.message.includes('Token')) {
+      
+      // Gestion spécifique des erreurs d'authentification
+      if (error.message.includes('401') || error.message.includes('Token') || error.message.includes('Unauthorized')) {
+        console.warn('Session expirée, déconnexion automatique');
         this.logout();
+        throw new Error('Session expirée. Veuillez vous reconnecter.');
       }
+      
+      // Gestion des erreurs de connectivité
+      if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
+        throw new Error('Erreur de connexion. Vérifiez votre connexion internet.');
+      }
+      
+      // Gestion des erreurs serveur
+      if (error.message.includes('500')) {
+        throw new Error('Erreur serveur. Veuillez réessayer plus tard.');
+      }
+      
       throw error;
     }
   }
