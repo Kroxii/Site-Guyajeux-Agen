@@ -217,5 +217,11 @@ class ApiService {
       return false;
     }
   }
+  
+  // Statistiques
+  async getStats() {
+    const response = await this.request('/stats');
+    return response.data;
+  }
 }
 

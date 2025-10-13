@@ -336,8 +336,12 @@ async function loadInitialData() {
     
     try {
         if (api) {
+            // Charger les tournois
             tournaments = await api.getTournaments() || [];
             console.log(' ' + tournaments.length + ' tournois chargés');
+            
+            // Charger les statistiques
+            await loadStats();
         }
     } catch (error) {
         console.error('Erreur chargement initial:', error);
@@ -346,6 +350,66 @@ async function loadInitialData() {
     } finally {
         showLoading(false);
     }
+}
+
+async function loadStats() {
+    try {
+        const stats = await api.getStats();
+        console.log('📊 Statistiques chargées:', stats);
+        
+        // Mettre à jour les compteurs sur la page d'accueil
+        const totalMembersEl = document.getElementById('totalMembers');
+        const totalTournamentsEl = document.getElementById('totalTournaments');
+        const totalGamesEl = document.getElementById('totalGames');
+        
+        if (totalMembersEl) {
+            totalMembersEl.textContent = stats.totalMembers || 0;
+        }
+        
+        if (totalTournamentsEl) {
+            totalTournamentsEl.textContent = stats.totalTournaments || 0;
+        }
+        
+        if (totalGamesEl) {
+            totalGamesEl.textContent = stats.totalGames || 0;
+        }
+        
+        // Animation des nombres (compteur)
+        animateCounter(totalMembersEl, stats.totalMembers);
+        animateCounter(totalTournamentsEl, stats.totalTournaments);
+        animateCounter(totalGamesEl, stats.totalGames);
+        
+    } catch (error) {
+        console.error('Erreur chargement statistiques:', error);
+        // Garder les valeurs par défaut en cas d'erreur
+    }
+}
+
+function animateCounter(element, targetValue) {
+    if (!element || !targetValue) return;
+    
+    const duration = 1000; // 1 seconde
+    const startValue = 0;
+    const startTime = performance.now();
+    
+    function update(currentTime) {
+        const elapsed = currentTime - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+        
+        // Easing function (ease out)
+        const easeOut = 1 - Math.pow(1 - progress, 3);
+        const currentValue = Math.floor(startValue + (targetValue - startValue) * easeOut);
+        
+        element.textContent = currentValue;
+        
+        if (progress < 1) {
+            requestAnimationFrame(update);
+        } else {
+            element.textContent = targetValue;
+        }
+    }
+    
+    requestAnimationFrame(update);
 }
 
 async function loadHomeData() {

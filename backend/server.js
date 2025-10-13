@@ -10,6 +10,7 @@ require('dotenv').config({ path: path.join(__dirname, '.env') });
 const authRoutes = require('./routes/auth');
 const tournamentRoutes = require('./routes/tournaments');
 const userRoutes = require('./routes/users');
+const statsRoutes = require('./routes/stats');
 const app = express();
 // Middleware de sécurité
 app.use(helmet());
@@ -42,6 +43,7 @@ app.use(express.static(path.join(__dirname, '../frontend')));
 app.use('/api/auth', authRoutes);
 app.use('/api/tournaments', tournamentRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/stats', statsRoutes);
 // Route de test
 app.get('/api/health', (req, res) => {
   res.json({
