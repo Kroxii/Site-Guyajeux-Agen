@@ -1,5 +1,5 @@
-const API_BASE_URL = window.location.origin.includes('localhost') ? 
-  'http://localhost:5000/api' : '/api';
+// URL relative pour la production
+const API_BASE_URL = '/api';
 class ApiService {
   constructor() {
     this.baseURL = API_BASE_URL;
@@ -17,9 +17,38 @@ class ApiService {
     if (this.token) {
       config.headers.Authorization = `Bearer ${this.token}`;
     }
+    
+    console.log('Requête API:', { url, method: config.method || 'GET', headers: config.headers });
+    
     try {
       const response = await fetch(url, config);
-      const data = await response.json();
+      
+      console.log('Statut réponse:', response.status, response.statusText);
+      
+      // Vérifier si la réponse contient du contenu
+      const contentType = response.headers.get('content-type');
+      const hasJsonContent = contentType && contentType.includes('application/json');
+      
+      let data;
+      if (hasJsonContent) {
+        const text = await response.text();
+        if (text) {
+          try {
+            data = JSON.parse(text);
+          } catch (parseError) {
+            console.error('Erreur parsing JSON:', parseError, 'Texte reçu:', text);
+            throw new Error('Réponse serveur invalide');
+          }
+        } else {
+          data = {};
+        }
+      } else {
+        // Si ce n'est pas du JSON, récupérer comme texte
+        data = { message: await response.text() || 'Erreur inconnue' };
+      }
+      
+      console.log('Données reçues:', data);
+      
       if (!response.ok) {
         throw new Error(data.message || `Erreur HTTP: ${response.status}`);
       }
@@ -60,10 +89,12 @@ class ApiService {
     return response;
   }
   async register(name, email, password) {
+    console.log('API register appelé avec:', { name, email, password: '***' });
     const response = await this.request('/auth/register', {
       method: 'POST',
       body: JSON.stringify({ name, email, password })
     });
+    console.log('Réponse API register:', response);
     if (response.success) {
       this.token = response.data.token;
       localStorage.setItem('authToken', this.token);

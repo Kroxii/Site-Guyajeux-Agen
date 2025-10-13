@@ -1,5 +1,5 @@
-// L'authentification se fait maintenant via l'API backend
-const api = new ApiService();
+// L'authentification se fait via l'API backend
+// La variable 'api' est déclarée globalement dans app.js
 
 // Vérifier l'authentification au chargement
 async function checkAuth() {
@@ -24,20 +24,25 @@ async function checkAuth() {
 }
 // Mettre à jour l'interface utilisateur selon l'état de connexion
 function updateAuthUI() {
-    const authButtons = document.getElementById('authButtons');
-    const userMenu = document.getElementById('userMenu');
+    const authButtons = document.getElementById('navAuth');
+    const userMenu = document.getElementById('navUser');
     const userName = document.getElementById('userName');
     const adminBtn = document.getElementById('adminBtn');
+    
+    if (!authButtons || !userMenu) {
+        console.warn('⚠️ Éléments de navigation non trouvés');
+        return;
+    }
+    
     if (currentUser) {
         // Utilisateur connecté
         authButtons.style.display = 'none';
         userMenu.style.display = 'flex';
-        userName.textContent = currentUser.name;
+        if (userName) userName.textContent = currentUser.name;
+        
         // Afficher le bouton admin si l'utilisateur est administrateur
-        if (currentUser.isAdmin) {
-            adminBtn.style.display = 'block';
-        } else {
-            adminBtn.style.display = 'none';
+        if (adminBtn) {
+            adminBtn.style.display = currentUser.isAdmin ? 'block' : 'none';
         }
     } else {
         // Utilisateur non connecté

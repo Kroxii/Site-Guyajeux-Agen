@@ -4,7 +4,8 @@ const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
 const rateLimit = require('express-rate-limit');
-require('dotenv').config();
+const path = require('path');
+require('dotenv').config({ path: path.join(__dirname, '.env') });
 // Import des routes
 const authRoutes = require('./routes/auth');
 const tournamentRoutes = require('./routes/tournaments');
@@ -14,7 +15,7 @@ const app = express();
 app.use(helmet());
 // Configuration CORS
 const corsOptions = {
-  origin: process.env.FRONTEND_URL || 'http://localhost:5000',
+  origin: process.env.FRONTEND_URL || true, // Permet tous les domaines en développement
   credentials: true,
   optionsSuccessStatus: 200
 };
@@ -36,7 +37,7 @@ if (process.env.NODE_ENV === 'development') {
   app.use(morgan('dev'));
 }
 // Servir les fichiers statiques (frontend)
-app.use(express.static('../frontend'));
+app.use(express.static(path.join(__dirname, '../frontend')));
 // Routes API
 app.use('/api/auth', authRoutes);
 app.use('/api/tournaments', tournamentRoutes);
@@ -115,9 +116,8 @@ const startServer = async () => {
   await connectDB();
   app.listen(PORT, () => {
     console.log(`\n🚀 Serveur démarré sur le port ${PORT}`);
-    console.log(`📍 URL: http://localhost:${PORT}`);
-    console.log(`🔧 Environnement: ${process.env.NODE_ENV}`);
-    console.log(`📡 API: http://localhost:${PORT}/api/health`);
+    console.log(` Environnement: ${process.env.NODE_ENV}`);
+    console.log(`📡 API disponible sur le port ${PORT}/api/health`);
   });
 };
 startServer();
