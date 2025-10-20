@@ -22,10 +22,12 @@
                         <i class="fas fa-home"></i>
                         <span>Accueil</span>
                     </a>
+                    <!-- Calendrier temporairement désactivé
                     <a href="#" class="nav-link" data-section="calendar">
                         <i class="fas fa-calendar-alt"></i>
                         <span>Calendrier</span>
                     </a>
+                    -->
                     <a href="#" class="nav-link" data-section="tournaments">
                         <i class="fas fa-trophy"></i>
                         <span>Tournois</span>
@@ -165,18 +167,21 @@
                             <span class="legend-text">Tournoi</span>
                         </div>
                         <div class="legend-item">
-                            <span class="legend-color event"></span>
-                            <span class="legend-text">Événement</span>
+                            <span class="legend-color today"></span>
+                            <span class="legend-text">Aujourd'hui</span>
                         </div>
                         <div class="legend-item">
-                            <span class="legend-color workshop"></span>
-                            <span class="legend-text">Atelier</span>
+                            <span class="legend-color has-event"></span>
+                            <span class="legend-text">Jour avec événement</span>
                         </div>
                     </div>
                 </div>
 
-                <div class="upcoming-events" id="upcomingEvents">
-                    <!-- Les événements à venir seront affichés ici -->
+                <div class="calendar-events-section">
+                    <h3>Événements du mois</h3>
+                    <div id="calendarEventsList" class="calendar-events-list">
+                        <!-- Les événements seront affichés ici -->
+                    </div>
                 </div>
             </div>
         </section>
@@ -216,7 +221,7 @@
         </section>
 
         <!-- Section Admin (masquée par défaut) -->
-        <section id="admin" class="section" style="display: none;">
+        <section id="admin" class="section">
             <div class="container">
                 <div class="page-header">
                     <h1 class="page-title">Administration</h1>
@@ -264,19 +269,17 @@
             <div class="footer-content">
                 <div class="footer-section">
                     <h3>Guyajeux Agen</h3>
-                    <p>Le club de jeux de société de référence à Agen</p>
+                    <p>La boutique de jeux de société de référence à Agen</p>
                 </div>
                 <div class="footer-section">
                     <h4>Contact</h4>
-                    <p><i class="fas fa-envelope"></i> contact@guyajeux-agen.fr</p>
-                    <p><i class="fas fa-phone"></i> 05 XX XX XX XX</p>
+                    <p><i class="fas fa-envelope"></i> guyajeux.agen@gmail.com</p>
+                    <p><i class="fas fa-phone"></i> 07 69 25 01 48</p>
                 </div>
                 <div class="footer-section">
                     <h4>Réseaux sociaux</h4>
                     <div class="social-links">
-                        <a href="#"><i class="fab fa-facebook"></i></a>
-                        <a href="#"><i class="fab fa-instagram"></i></a>
-                        <a href="#"><i class="fab fa-discord"></i></a>
+                        <a href="https://www.facebook.com/GuyajeuxAgen47000"><i class="fab fa-facebook"></i></a>
                     </div>
                 </div>
             </div>
@@ -395,8 +398,18 @@
                     </div>
                     <div class="form-row">
                         <div class="form-group">
-                            <label for="tournamentDate">Date et heure</label>
-                            <input type="datetime-local" id="tournamentDate" name="date" required>
+                            <label for="tournamentDate">Date</label>
+                            <input type="date" id="tournamentDate" name="date" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="tournamentTime">Heure</label>
+                            <input type="time" id="tournamentTime" name="time" required>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="tournamentPrice">Prix (€)</label>
+                            <input type="number" id="tournamentPrice" name="price" required min="0" step="0.01" placeholder="5.00">
                         </div>
                         <div class="form-group">
                             <label for="tournamentMaxPlayers">Nombre maximum de joueurs</label>
@@ -421,6 +434,72 @@
         </div>
     </div>
 
+    <!-- Modal d'édition de tournoi -->
+    <div id="editTournamentModal" class="modal">
+        <div class="modal-overlay" data-close-modal="editTournamentModal"></div>
+        <div class="modal-content modal-large">
+            <div class="modal-header">
+                <h2>Modifier le tournoi</h2>
+                <button class="modal-close" data-close-modal="editTournamentModal">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="editTournamentForm">
+                    <input type="hidden" id="editTournamentId" name="id">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="editTournamentName">Nom du tournoi</label>
+                            <input type="text" id="editTournamentName" name="name" required placeholder="Ex: Tournoi Magic du samedi">
+                        </div>
+                        <div class="form-group">
+                            <label for="editTournamentGame">Jeu</label>
+                            <input type="text" id="editTournamentGame" name="game" required placeholder="Ex: Magic: The Gathering">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="editTournamentDate">Date</label>
+                            <input type="date" id="editTournamentDate" name="date" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="editTournamentTime">Heure</label>
+                            <input type="time" id="editTournamentTime" name="time" required>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="editTournamentPrice">Prix (€)</label>
+                            <input type="number" id="editTournamentPrice" name="price" required min="0" step="0.01" placeholder="5.00">
+                        </div>
+                        <div class="form-group">
+                            <label for="editTournamentMaxPlayers">Nombre maximum de joueurs</label>
+                            <input type="number" id="editTournamentMaxPlayers" name="maxPlayers" required min="2" max="64" placeholder="16">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="editTournamentDescription">Description</label>
+                        <textarea id="editTournamentDescription" name="description" rows="4" placeholder="Décrivez le tournoi, les règles, les prix..."></textarea>
+                    </div>
+                    <div class="form-actions">
+                        <button type="button" class="btn btn-danger" id="deleteTournamentBtn">
+                            <i class="fas fa-trash"></i>
+                            <span>Supprimer</span>
+                        </button>
+                        <div style="flex: 1;"></div>
+                        <button type="button" class="btn btn-ghost" data-close-modal="editTournamentModal">
+                            Annuler
+                        </button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save"></i>
+                            <span>Enregistrer</span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
     <!-- Messages de notification -->
     <div id="notifications" class="notifications"></div>
 
@@ -436,7 +515,6 @@
     <script src="js/api.js"></script>
     <script src="js/app.js"></script>
     <script src="js/auth.js"></script>
-    <script src="js/calendar.js"></script>
     <script src="js/tournaments.js"></script>
 </body>
 </html>

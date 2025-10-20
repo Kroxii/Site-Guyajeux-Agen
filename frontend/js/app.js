@@ -7,6 +7,7 @@ let currentUser = null;
 let currentSection = 'home';
 let tournaments = [];
 let api = null;
+let currentCalendarDate = new Date(); // Pour la navigation du calendrier
 
 document.addEventListener('DOMContentLoaded', async function() {
     console.log(' Initialisation de l\'application Guyajeux Agen');
@@ -85,12 +86,15 @@ function updateNavigation(activeSection) {
 }
 
 function showSection(sectionName) {
+    console.log('📍 showSection appelé:', sectionName);
     const sections = document.querySelectorAll('.section');
     sections.forEach(section => section.classList.remove('active'));
     
     const targetSection = document.getElementById(sectionName);
+    console.log('Section trouvée:', targetSection);
     if (targetSection) {
         targetSection.classList.add('active');
+        console.log('Classe active ajoutée, classes:', targetSection.className);
     }
 }
 
@@ -431,7 +435,29 @@ async function loadHomeData() {
 }
 
 async function loadCalendarData() {
-    renderCalendar();
+    console.log('🔄 Chargement des données du calendrier...');
+    console.log('📋 Tournois disponibles:', tournaments.length, tournaments);
+    
+    const calendarGrid = document.getElementById('calendarGrid');
+    const currentMonthElement = document.getElementById('currentMonth');
+    console.log('🔍 Éléments trouvés:', {
+        calendarGrid: calendarGrid,
+        currentMonth: currentMonthElement
+    });
+    
+    try {
+        renderCalendar();
+        console.log('✅ renderCalendar() terminé');
+    } catch (error) {
+        console.error('❌ Erreur dans renderCalendar():', error);
+    }
+    
+    try {
+        renderCalendarEvents();
+        console.log('✅ renderCalendarEvents() terminé');
+    } catch (error) {
+        console.error('❌ Erreur dans renderCalendarEvents():', error);
+    }
 }
 
 async function loadTournamentsData() {
@@ -474,14 +500,24 @@ async function loadUserRegistrations() {
 
 async function loadAdminData() {
     try {
-        if (!currentUser || !currentUser.isAdmin || !api) return;
+        console.log('📊 loadAdminData appelé');
+        console.log('Current user admin?', currentUser?.isAdmin);
+        console.log('Tournaments:', tournaments);
+        
+        if (!currentUser || !currentUser.isAdmin || !api) {
+            console.warn('⚠️ Accès refusé ou API non disponible');
+            return;
+        }
         
         const adminTournamentsList = document.getElementById('adminTournamentsList');
+        console.log('Container admin tournois:', adminTournamentsList);
+        
         if (adminTournamentsList) {
             renderAdminTournaments(adminTournamentsList, tournaments);
+            console.log('✅ Tournois admin rendus');
         }
     } catch (error) {
-        console.error('Erreur chargement admin:', error);
+        console.error('❌ Erreur chargement admin:', error);
     }
 }
 
@@ -494,12 +530,41 @@ function renderTournamentsGrid(container, tournamentsList) {
     }
     
     container.innerHTML = tournamentsList.map(tournament => createTournamentCard(tournament)).join('');
+    
+    // Ajouter les event listeners
+    container.querySelectorAll('.tournament-card').forEach(card => {
+        const tournamentId = card.dataset.tournamentId;
+        card.addEventListener('click', function() {
+            showTournamentDetails(tournamentId);
+        });
+    });
+    
+    container.querySelectorAll('.register-tournament-btn').forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            registerForTournament(this.dataset.tournamentId);
+        });
+    });
+    
+    container.querySelectorAll('.details-tournament-btn').forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            showTournamentDetails(this.dataset.tournamentId);
+        });
+    });
+    
+    container.querySelectorAll('.login-btn').forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            openModal('loginModal');
+        });
+    });
 }
 
 function createTournamentCard(tournament) {
     const tournamentId = tournament._id || tournament.id;
     
-    return '<div class="tournament-card" onclick="showTournamentDetails(\'' + tournamentId + '\')">' +
+    return '<div class="tournament-card" data-tournament-id="' + tournamentId + '">' +
         '<div class="tournament-header">' +
             '<h3 class="tournament-title">' + tournament.name + '</h3>' +
             '<p class="tournament-game">' + tournament.game + '</p>' +
@@ -532,20 +597,20 @@ function createTournamentCard(tournament) {
 
 function createTournamentActions(tournamentId) {
     if (currentUser) {
-        return '<button class="btn btn-primary btn-sm" onclick="event.stopPropagation(); registerForTournament(\'' + tournamentId + '\')">' +
+        return '<button class="btn btn-primary btn-sm register-tournament-btn" data-tournament-id="' + tournamentId + '">' +
                 '<i class="fas fa-plus"></i>' +
                 '<span>S\'inscrire</span>' +
             '</button>' +
-            '<button class="btn btn-ghost btn-sm" onclick="event.stopPropagation(); showTournamentDetails(\'' + tournamentId + '\')">' +
+            '<button class="btn btn-ghost btn-sm details-tournament-btn" data-tournament-id="' + tournamentId + '">' +
                 '<i class="fas fa-info-circle"></i>' +
                 '<span>Détails</span>' +
             '</button>';
     } else {
-        return '<button class="btn btn-ghost btn-sm" onclick="event.stopPropagation(); openModal(\'loginModal\')">' +
+        return '<button class="btn btn-ghost btn-sm login-btn">' +
                 '<i class="fas fa-sign-in-alt"></i>' +
                 '<span>Se connecter</span>' +
             '</button>' +
-            '<button class="btn btn-ghost btn-sm" onclick="event.stopPropagation(); showTournamentDetails(\'' + tournamentId + '\')">' +
+            '<button class="btn btn-ghost btn-sm details-tournament-btn" data-tournament-id="' + tournamentId + '">' +
                 '<i class="fas fa-info-circle"></i>' +
                 '<span>Détails</span>' +
             '</button>';
@@ -553,38 +618,54 @@ function createTournamentActions(tournamentId) {
 }
 
 function renderUserRegistrations(container, registrations) {
-    container.innerHTML = registrations.map(registration => 
-        '<div class="registration-card">' +
-            '<h4>' + registration.tournamentName + '</h4>' +
-            '<p>Date: ' + formatDate(registration.tournamentDate) + '</p>' +
+    container.innerHTML = registrations.map(registration => {
+        const tournamentId = registration.tournament?._id || registration.tournament;
+        const tournamentName = registration.tournament?.name || registration.tournamentName || 'Tournoi';
+        const tournamentDate = registration.tournament?.date || registration.tournamentDate;
+        
+        return '<div class="registration-card">' +
+            '<h4>' + tournamentName + '</h4>' +
+            '<p>Date: ' + formatDate(tournamentDate) + '</p>' +
             '<p>Statut: ' + registration.status + '</p>' +
-            '<button class="btn btn-danger btn-sm" onclick="cancelRegistration(\'' + registration._id + '\')">' +
+            '<button class="btn btn-danger btn-sm cancel-registration-btn" data-tournament-id="' + tournamentId + '">' +
                 'Annuler l\'inscription' +
             '</button>' +
-        '</div>'
-    ).join('');
+        '</div>';
+    }).join('');
+    
+    // Ajouter les event listeners
+    container.querySelectorAll('.cancel-registration-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            cancelRegistration(this.dataset.tournamentId);
+        });
+    });
 }
 
 function renderAdminTournaments(container, tournamentsList) {
-    container.innerHTML = tournamentsList.map(tournament => 
-        '<div class="admin-tournament-item">' +
+    container.innerHTML = tournamentsList.map(tournament => {
+        const tournamentId = tournament._id || tournament.id;
+        const price = tournament.entryFee ? tournament.entryFee.toFixed(2) + ' €' : 'Gratuit';
+        return '<div class="admin-tournament-item">' +
             '<div class="tournament-info">' +
                 '<h4>' + tournament.name + '</h4>' +
                 '<p>' + tournament.game + ' - ' + formatDate(tournament.date) + '</p>' +
-                '<p>' + (tournament.currentPlayers || 0) + '/' + tournament.maxPlayers + ' joueurs</p>' +
+                '<p>' + (tournament.currentPlayers || 0) + '/' + tournament.maxPlayers + ' joueurs - ' + price + '</p>' +
             '</div>' +
             '<div class="admin-actions">' +
-                '<button class="btn btn-ghost btn-sm" onclick="editTournament(\'' + tournament._id + '\')">' +
+                '<button class="btn btn-ghost btn-sm edit-tournament-btn" data-tournament-id="' + tournamentId + '">' +
                     '<i class="fas fa-edit"></i>' +
                     'Modifier' +
                 '</button>' +
-                '<button class="btn btn-danger btn-sm" onclick="deleteTournament(\'' + tournament._id + '\')">' +
-                    '<i class="fas fa-trash"></i>' +
-                    'Supprimer' +
-                '</button>' +
             '</div>' +
-        '</div>'
-    ).join('');
+        '</div>';
+    }).join('');
+    
+    // Ajouter les event listeners après le rendu
+    container.querySelectorAll('.edit-tournament-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            openEditTournamentModal(this.dataset.tournamentId);
+        });
+    });
 }
 
 async function registerForTournament(tournamentId) {
@@ -603,12 +684,49 @@ async function registerForTournament(tournamentId) {
             if (currentSection === 'tournaments') {
                 await loadTournamentsData();
             }
+            if (currentSection === 'home') {
+                await loadHomeData();
+            }
         } else {
             throw new Error(response.message || 'Erreur lors de l\'inscription');
         }
     } catch (error) {
         console.error('Erreur inscription tournoi:', error);
         showNotification(error.message || 'Erreur lors de l\'inscription au tournoi', 'error');
+    } finally {
+        showLoading(false);
+    }
+}
+
+async function cancelRegistration(tournamentId) {
+    if (!currentUser) {
+        openModal('loginModal');
+        return;
+    }
+    
+    if (!confirm('Êtes-vous sûr de vouloir annuler votre inscription à ce tournoi ?')) {
+        return;
+    }
+    
+    try {
+        showLoading(true);
+        const response = await api.unregisterFromTournament(tournamentId);
+        
+        if (response.success) {
+            showNotification('Désinscription réussie !', 'success');
+            await loadInitialData();
+            if (currentSection === 'tournaments') {
+                await loadTournamentsData();
+            }
+            if (currentSection === 'home') {
+                await loadHomeData();
+            }
+        } else {
+            throw new Error(response.message || 'Erreur lors de la désinscription');
+        }
+    } catch (error) {
+        console.error('Erreur désinscription tournoi:', error);
+        showNotification(error.message || 'Erreur lors de l\'annulation de l\'inscription', 'error');
     } finally {
         showLoading(false);
     }
@@ -625,25 +743,33 @@ async function handleCreateTournament(event) {
     try {
         showLoading(true);
         const formData = new FormData(event.target);
+        
+        // Combiner date et heure
+        const date = formData.get('date');
+        const time = formData.get('time');
+        const dateTime = new Date(`${date}T${time}`);
+        
         const tournamentData = {
             name: formData.get('name'),
             game: formData.get('game'),
-            date: formData.get('date'),
+            date: dateTime.toISOString(),
+            entryFee: parseFloat(formData.get('price')),
             maxPlayers: parseInt(formData.get('maxPlayers')),
             description: formData.get('description')
         };
         
         const response = await api.createTournament(tournamentData);
         
-        if (response.success) {
+        if (response) {
             closeModal('createTournamentModal');
+            event.target.reset();
             showNotification('Tournoi créé avec succès !', 'success');
             await loadInitialData();
             if (currentSection === 'admin') {
                 await loadAdminData();
             }
         } else {
-            throw new Error(response.message || 'Erreur lors de la création');
+            throw new Error('Erreur lors de la création');
         }
     } catch (error) {
         console.error('Erreur création tournoi:', error);
@@ -651,6 +777,155 @@ async function handleCreateTournament(event) {
     } finally {
         showLoading(false);
     }
+}
+
+async function handleEditTournament(event) {
+    event.preventDefault();
+    
+    if (!currentUser || !currentUser.isAdmin) {
+        showNotification('Accès refusé', 'error');
+        return;
+    }
+    
+    try {
+        showLoading(true);
+        const formData = new FormData(event.target);
+        const tournamentId = formData.get('id');
+        
+        // Combiner date et heure
+        const date = formData.get('date');
+        const time = formData.get('time');
+        const dateTime = new Date(`${date}T${time}`);
+        
+        const tournamentData = {
+            name: formData.get('name'),
+            game: formData.get('game'),
+            date: dateTime.toISOString(),
+            entryFee: parseFloat(formData.get('price')),
+            maxPlayers: parseInt(formData.get('maxPlayers')),
+            description: formData.get('description')
+        };
+        
+        const response = await api.updateTournament(tournamentId, tournamentData);
+        
+        if (response) {
+            closeModal('editTournamentModal');
+            showNotification('Tournoi modifié avec succès !', 'success');
+            await loadInitialData();
+            if (currentSection === 'admin') {
+                await loadAdminData();
+            }
+        } else {
+            throw new Error('Erreur lors de la modification');
+        }
+    } catch (error) {
+        console.error('Erreur modification tournoi:', error);
+        showNotification(error.message || 'Erreur lors de la modification du tournoi', 'error');
+    } finally {
+        showLoading(false);
+    }
+}
+
+async function handleDeleteTournament() {
+    const tournamentId = document.getElementById('editTournamentId').value;
+    
+    if (!tournamentId) {
+        showNotification('Erreur: ID du tournoi non trouvé', 'error');
+        return;
+    }
+    
+    // Trouver le tournoi pour afficher ses informations
+    const tournament = tournaments.find(t => (t._id || t.id) === tournamentId);
+    const playerCount = tournament ? (tournament.currentPlayers || 0) : 0;
+    
+    // Message de confirmation adapté
+    let confirmMessage = 'Êtes-vous sûr de vouloir supprimer ce tournoi ?\n';
+    if (playerCount > 0) {
+        confirmMessage += `\n⚠️ ATTENTION : Ce tournoi a ${playerCount} joueur${playerCount > 1 ? 's' : ''} inscrit${playerCount > 1 ? 's' : ''}.\n`;
+        confirmMessage += 'La suppression sera impossible tant que des joueurs sont inscrits.\n\n';
+        confirmMessage += 'Vous devez d\'abord annuler toutes les inscriptions.';
+    } else {
+        confirmMessage += '\nCette action est irréversible.';
+    }
+    
+    if (!confirm(confirmMessage)) {
+        return;
+    }
+    
+    try {
+        showLoading(true);
+        const response = await api.deleteTournament(tournamentId);
+        
+        if (response) {
+            closeModal('editTournamentModal');
+            showNotification('Tournoi supprimé avec succès !', 'success');
+            await loadInitialData();
+            if (currentSection === 'admin') {
+                await loadAdminData();
+            }
+        } else {
+            throw new Error('Erreur lors de la suppression');
+        }
+    } catch (error) {
+        console.error('Erreur suppression tournoi:', error);
+        
+        // Gestion spécifique de l'erreur d'inscriptions
+        if (error.message && error.message.includes('inscriptions')) {
+            showNotification(
+                `❌ Impossible de supprimer ce tournoi.\n\n` +
+                `Ce tournoi a des joueurs inscrits. Vous devez d'abord annuler toutes les inscriptions avant de pouvoir le supprimer.\n\n` +
+                `Nombre de joueurs inscrits : ${playerCount}`,
+                'error'
+            );
+        } else {
+            showNotification(error.message || 'Erreur lors de la suppression du tournoi', 'error');
+        }
+    } finally {
+        showLoading(false);
+    }
+}
+
+function openEditTournamentModal(tournamentId) {
+    const tournament = tournaments.find(t => (t._id || t.id) === tournamentId);
+    
+    if (!tournament) {
+        showNotification('Tournoi non trouvé', 'error');
+        return;
+    }
+    
+    const playerCount = tournament.currentPlayers || 0;
+    
+    // Remplir le formulaire avec les données du tournoi
+    document.getElementById('editTournamentId').value = tournament._id || tournament.id;
+    document.getElementById('editTournamentName').value = tournament.name;
+    document.getElementById('editTournamentGame').value = tournament.game;
+    
+    // Séparer date et heure
+    const tournamentDate = new Date(tournament.date);
+    const dateStr = tournamentDate.toISOString().split('T')[0];
+    const timeStr = tournamentDate.toTimeString().substring(0, 5);
+    
+    document.getElementById('editTournamentDate').value = dateStr;
+    document.getElementById('editTournamentTime').value = timeStr;
+    document.getElementById('editTournamentPrice').value = tournament.entryFee || 0;
+    document.getElementById('editTournamentMaxPlayers').value = tournament.maxPlayers;
+    document.getElementById('editTournamentDescription').value = tournament.description || '';
+    
+    // Gérer le bouton de suppression en fonction des inscriptions
+    const deleteBtn = document.getElementById('deleteTournamentBtn');
+    if (deleteBtn) {
+        if (playerCount > 0) {
+            deleteBtn.disabled = true;
+            deleteBtn.title = `Impossible de supprimer : ${playerCount} joueur${playerCount > 1 ? 's' : ''} inscrit${playerCount > 1 ? 's' : ''}`;
+            deleteBtn.innerHTML = '<i class="fas fa-lock"></i><span>Suppression bloquée (' + playerCount + ' inscrit' + (playerCount > 1 ? 's' : '') + ')</span>';
+        } else {
+            deleteBtn.disabled = false;
+            deleteBtn.title = 'Supprimer ce tournoi définitivement';
+            deleteBtn.innerHTML = '<i class="fas fa-trash"></i><span>Supprimer</span>';
+        }
+    }
+    
+    openModal('editTournamentModal');
 }
 
 function showTournamentDetails(tournamentId) {
@@ -661,51 +936,182 @@ function showTournamentDetails(tournamentId) {
 }
 
 function renderCalendar() {
+    console.log('🎯 DÉBUT renderCalendar()');
+    
     const calendarGrid = document.getElementById('calendarGrid');
     const currentMonthElement = document.getElementById('currentMonth');
     
-    if (!calendarGrid || !currentMonthElement) return;
-    
-    const date = new Date();
-    const currentMonth = date.getMonth();
-    const currentYear = date.getFullYear();
-    
-    currentMonthElement.textContent = date.toLocaleDateString('fr-FR', { 
-        month: 'long', 
-        year: 'numeric' 
+    console.log('🔍 Dans renderCalendar, éléments:', {
+        grid: calendarGrid,
+        month: currentMonthElement
     });
     
-    const firstDay = new Date(currentYear, currentMonth, 1);
-    const startDate = new Date(firstDay);
-    startDate.setDate(startDate.getDate() - firstDay.getDay());
+    if (!calendarGrid || !currentMonthElement) {
+        console.warn('⚠️ Éléments du calendrier non trouvés');
+        return;
+    }
+    
+    const currentMonth = currentCalendarDate.getMonth();
+    const currentYear = currentCalendarDate.getFullYear();
+    
+    console.log('📅 Rendu du calendrier:', {
+        mois: currentMonth + 1,
+        année: currentYear,
+        date: currentCalendarDate.toLocaleDateString('fr-FR')
+    });
+    
+    currentMonthElement.textContent = currentCalendarDate.toLocaleDateString('fr-FR', { 
+        month: 'long', 
+        year: 'numeric' 
+    }).replace(/^\w/, c => c.toUpperCase());
+    
+    // Premier jour du mois
+    const firstDayOfMonth = new Date(currentYear, currentMonth, 1);
+    const lastDayOfMonth = new Date(currentYear, currentMonth + 1, 0);
+    
+    // Calculer le jour de la semaine du premier jour (0 = dimanche, 6 = samedi)
+    let firstDayOfWeek = firstDayOfMonth.getDay();
+    
+    // Calculer la date de début (premier dimanche à afficher)
+    const startDate = new Date(firstDayOfMonth);
+    startDate.setDate(startDate.getDate() - firstDayOfWeek);
+    
+    console.log('📊 Infos calendrier:', {
+        premierJourDuMois: firstDayOfMonth.toLocaleDateString('fr-FR'),
+        dernierJourDuMois: lastDayOfMonth.toLocaleDateString('fr-FR'),
+        premierJourSemaine: firstDayOfWeek,
+        dateDebut: startDate.toLocaleDateString('fr-FR')
+    });
     
     let calendarHTML = '';
     
-    const dayHeaders = ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam'];
+    // En-têtes des jours
+    const dayHeaders = ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'];
     dayHeaders.forEach(day => {
-        calendarHTML += '<div class="calendar-day-header">' + day + '</div>';
+        calendarHTML += '<div class="calendar-day-header">' + day.substring(0, 3) + '</div>';
     });
     
+    // Générer 6 semaines (42 jours)
+    let eventCount = 0;
     for (let i = 0; i < 42; i++) {
         const currentDate = new Date(startDate);
         currentDate.setDate(startDate.getDate() + i);
         
         const isCurrentMonth = currentDate.getMonth() === currentMonth;
         const isToday = currentDate.toDateString() === new Date().toDateString();
-        const hasEvent = hasCalendarEvent(currentDate);
+        const dayTournaments = getTournamentsForDate(currentDate);
+        const hasEvent = dayTournaments.length > 0;
+        
+        if (hasEvent) eventCount++;
         
         let classes = 'calendar-day';
         if (!isCurrentMonth) classes += ' other-month';
         if (isToday) classes += ' today';
         if (hasEvent) classes += ' has-event';
         
-        calendarHTML += '<div class="' + classes + '" onclick="selectCalendarDay(\'' + currentDate.toISOString() + '\')">' +
+        let eventHTML = '';
+        if (hasEvent && isCurrentMonth) {
+            eventHTML = '<div class="event-indicator">' + dayTournaments.length + '</div>';
+        }
+        
+        calendarHTML += '<div class="' + classes + '" data-date="' + currentDate.toISOString() + '" title="' + currentDate.toLocaleDateString('fr-FR') + '">' +
                 '<span class="day-number">' + currentDate.getDate() + '</span>' +
-                (hasEvent ? '<div class="event-indicator"></div>' : '') +
+                eventHTML +
             '</div>';
     }
     
+    console.log('✅ Calendrier généré:', {
+        totalJours: 42,
+        joursAvecEvenements: eventCount
+    });
+    
     calendarGrid.innerHTML = calendarHTML;
+    
+    // Ajouter les event listeners après le rendu
+    calendarGrid.querySelectorAll('.calendar-day').forEach(day => {
+        day.addEventListener('click', function() {
+            selectCalendarDay(this.dataset.date);
+        });
+    });
+    
+    // Mettre à jour la liste des événements du mois
+    renderCalendarEvents();
+}
+
+function getTournamentsForDate(date) {
+    const dateString = date.toDateString();
+    return tournaments.filter(tournament => 
+        new Date(tournament.date).toDateString() === dateString
+    );
+}
+
+function renderCalendarEvents() {
+    const eventsList = document.getElementById('calendarEventsList');
+    if (!eventsList) return;
+    
+    const currentMonth = currentCalendarDate.getMonth();
+    const currentYear = currentCalendarDate.getFullYear();
+    
+    // Filtrer les tournois du mois en cours
+    const monthTournaments = tournaments.filter(tournament => {
+        const tournamentDate = new Date(tournament.date);
+        return tournamentDate.getMonth() === currentMonth && 
+               tournamentDate.getFullYear() === currentYear;
+    }).sort((a, b) => new Date(a.date) - new Date(b.date));
+    
+    if (monthTournaments.length === 0) {
+        eventsList.innerHTML = '<p class="no-events">Aucun événement ce mois-ci</p>';
+        return;
+    }
+    
+    eventsList.innerHTML = monthTournaments.map(tournament => {
+        const tournamentId = tournament._id || tournament.id;
+        const tournamentDate = new Date(tournament.date);
+        const dayOfWeek = tournamentDate.toLocaleDateString('fr-FR', { weekday: 'long' });
+        const dayNum = tournamentDate.getDate();
+        const price = tournament.entryFee ? tournament.entryFee.toFixed(2) + ' €' : 'Gratuit';
+        
+        return '<div class="calendar-event-item" data-tournament-id="' + tournamentId + '">' +
+            '<div class="event-date">' +
+                '<span class="event-day">' + dayNum + '</span>' +
+                '<span class="event-weekday">' + dayOfWeek + '</span>' +
+            '</div>' +
+            '<div class="event-details">' +
+                '<h4 class="event-title">' + tournament.name + '</h4>' +
+                '<p class="event-game"><i class="fas fa-gamepad"></i> ' + tournament.game + '</p>' +
+                '<div class="event-info">' +
+                    '<span><i class="fas fa-clock"></i> ' + formatTime(tournament.date) + '</span>' +
+                    '<span><i class="fas fa-users"></i> ' + (tournament.currentPlayers || 0) + '/' + tournament.maxPlayers + '</span>' +
+                    '<span><i class="fas fa-euro-sign"></i> ' + price + '</span>' +
+                '</div>' +
+            '</div>' +
+            '<div class="event-actions">' +
+                '<button class="btn btn-sm btn-primary view-event-btn" data-tournament-id="' + tournamentId + '">' +
+                    '<i class="fas fa-eye"></i> Voir' +
+                '</button>' +
+            '</div>' +
+        '</div>';
+    }).join('');
+    
+    // Ajouter les event listeners
+    eventsList.querySelectorAll('.view-event-btn').forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            showTournamentDetails(this.dataset.tournamentId);
+        });
+    });
+    
+    eventsList.querySelectorAll('.calendar-event-item').forEach(item => {
+        item.addEventListener('click', function() {
+            showTournamentDetails(this.dataset.tournamentId);
+        });
+    });
+}
+
+function changeMonth(offset) {
+    currentCalendarDate.setMonth(currentCalendarDate.getMonth() + offset);
+    renderCalendar();
+    renderCalendarEvents();
 }
 
 function hasCalendarEvent(date) {
@@ -717,13 +1123,23 @@ function hasCalendarEvent(date) {
 
 function selectCalendarDay(dateString) {
     const date = new Date(dateString);
-    const dayEvents = tournaments.filter(tournament => 
-        new Date(tournament.date).toDateString() === date.toDateString()
-    );
+    const dayEvents = getTournamentsForDate(date);
     
-    if (dayEvents.length > 0) {
-        showNotification(dayEvents.length + ' événement(s) ce jour', 'info');
+    if (dayEvents.length === 0) {
+        showNotification('Aucun événement ce jour', 'info');
+        return;
     }
+    
+    // Créer un message avec tous les événements du jour
+    let message = `📅 ${dayEvents.length} événement${dayEvents.length > 1 ? 's' : ''} le ${date.toLocaleDateString('fr-FR')} :\n\n`;
+    
+    dayEvents.forEach((event, index) => {
+        message += `${index + 1}. ${event.name} (${event.game})\n`;
+        message += `   🕐 ${formatTime(event.date)}\n`;
+        message += `   👥 ${event.currentPlayers || 0}/${event.maxPlayers} joueurs\n\n`;
+    });
+    
+    showNotification(message, 'info');
 }
 
 function formatDate(dateString) {
@@ -832,6 +1248,12 @@ function showNotification(message, type, duration) {
     }, duration);
 }
 
+function showAdminPanel() {
+    console.log('🔧 showAdminPanel appelé');
+    console.log('Current user:', currentUser);
+    navigateToSection('admin');
+}
+
 function toggleMobileMenu() {
     const navMenu = document.querySelector('.nav-menu');
     if (navMenu) {
@@ -929,6 +1351,16 @@ function initEventListeners() {
     if (createTournamentForm) {
         createTournamentForm.addEventListener('submit', handleCreateTournament);
     }
+    
+    const editTournamentForm = document.getElementById('editTournamentForm');
+    if (editTournamentForm) {
+        editTournamentForm.addEventListener('submit', handleEditTournament);
+    }
+    
+    const deleteTournamentBtn = document.getElementById('deleteTournamentBtn');
+    if (deleteTournamentBtn) {
+        deleteTournamentBtn.addEventListener('click', handleDeleteTournament);
+    }
 }
 
 window.toggleTheme = toggleTheme;
@@ -939,6 +1371,11 @@ window.handleLogin = handleLogin;
 window.handleRegister = handleRegister;
 window.logout = logout;
 window.registerForTournament = registerForTournament;
+window.cancelRegistration = cancelRegistration;
+window.changeMonth = changeMonth;
 window.handleCreateTournament = handleCreateTournament;
+window.handleEditTournament = handleEditTournament;
+window.handleDeleteTournament = handleDeleteTournament;
+window.openEditTournamentModal = openEditTournamentModal;
 window.showNotification = showNotification;
 window.toggleMobileMenu = toggleMobileMenu;

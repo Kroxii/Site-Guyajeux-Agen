@@ -57,7 +57,7 @@ async function login(event) {
     const password = document.getElementById('loginPassword').value;
     
     if (!email || !password) {
-        showMessage('Veuillez remplir tous les champs', 'error');
+        showNotification('Veuillez remplir tous les champs', 'error');
         return;
     }
     
@@ -66,7 +66,7 @@ async function login(event) {
         
         if (response.success) {
             currentUser = response.data.user;
-            showMessage('Connexion réussie !', 'success');
+            showNotification('Connexion réussie !', 'success');
             updateAuthUI();
             
             // Recharger les données
@@ -81,7 +81,7 @@ async function login(event) {
         }
     } catch (error) {
         console.error('Erreur de connexion:', error);
-        showMessage('Email ou mot de passe incorrect', 'error');
+        showNotification('Email ou mot de passe incorrect', 'error');
     }
 }
 // Fonction d'inscription
@@ -93,23 +93,23 @@ async function register(event) {
     const confirmPassword = document.getElementById('confirmPassword').value;
     
     if (!name || !email || !password || !confirmPassword) {
-        showMessage('Veuillez remplir tous les champs', 'error');
+        showNotification('Veuillez remplir tous les champs', 'error');
         return;
     }
     
     // Validation email basique
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
-        showMessage('Veuillez saisir une adresse email valide', 'error');
+        showNotification('Veuillez saisir une adresse email valide', 'error');
         return;
     }
     
     if (password !== confirmPassword) {
-        showMessage('Les mots de passe ne correspondent pas', 'error');
+        showNotification('Les mots de passe ne correspondent pas', 'error');
         return;
     }
     if (password.length < 6) {
-        showMessage('Le mot de passe doit contenir au moins 6 caractères', 'error');
+        showNotification('Le mot de passe doit contenir au moins 6 caractères', 'error');
         return;
     }
     
@@ -118,7 +118,7 @@ async function register(event) {
         
         if (response.success) {
             currentUser = response.data.user;
-            showMessage('Compte créé avec succès !', 'success');
+            showNotification('Compte créé avec succès !', 'success');
             updateAuthUI();
             
             // Recharger les données
@@ -135,14 +135,14 @@ async function register(event) {
         }
     } catch (error) {
         console.error('Erreur d\'inscription:', error);
-        showMessage('Erreur lors de l\'inscription: ' + error.message, 'error');
+        showNotification('Erreur lors de l\'inscription: ' + error.message, 'error');
     }
 }
 // Fonction de déconnexion
 async function logout() {
     try {
         await api.logout();
-        showMessage('Déconnexion réussie', 'success');
+        showNotification('Déconnexion réussie', 'success');
     } catch (error) {
         console.error('Erreur lors de la déconnexion:', error);
         // Forcer la déconnexion locale même en cas d'erreur

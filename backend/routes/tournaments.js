@@ -5,12 +5,29 @@ const { auth, requireAdmin } = require('../middleware/auth');
 
 const router = express.Router();
 
+// Fonction helper pour synchroniser le nombre de joueurs
+async function syncTournamentPlayers(tournamentId) {
+  const count = await Registration.countDocuments({ tournament: tournamentId });
+  await Tournament.findByIdAndUpdate(tournamentId, { currentPlayers: count });
+  return count;
+}
+
 // @route   GET /api/tournaments
 // @desc    Obtenir tous les tournois
 // @access  Public
 router.get('/', async (req, res) => {
   try {
     const tournaments = await Tournament.find().sort({ date: 1 });
+    
+    // Synchroniser le nombre de joueurs pour chaque tournoi
+    for (let tournament of tournaments) {
+      const actualCount = await Registration.countDocuments({ tournament: tournament._id });
+      if (tournament.currentPlayers !== actualCount) {
+        tournament.currentPlayers = actualCount;
+        await tournament.save();
+      }
+    }
+    
     res.json({
       success: true,
       data: tournaments
@@ -237,6 +254,11 @@ router.post('/:id/register', auth, async (req, res) => {
     });
 
     await registration.save();
+    
+    // Incrémenter le nombre de joueurs inscrits
+    tournament.currentPlayers = (tournament.currentPlayers || 0) + 1;
+    await tournament.save();
+    
     await registration.populate('user', 'name email');
     await registration.populate('tournament', 'name date');
 
@@ -272,6 +294,13 @@ router.delete('/:id/register', auth, async (req, res) => {
     }
 
     await Registration.findByIdAndDelete(registration._id);
+    
+    // Décrémenter le nombre de joueurs inscrits
+    const tournament = await Tournament.findById(req.params.id);
+    if (tournament && tournament.currentPlayers > 0) {
+      tournament.currentPlayers = tournament.currentPlayers - 1;
+      await tournament.save();
+    }
 
     res.json({
       success: true,

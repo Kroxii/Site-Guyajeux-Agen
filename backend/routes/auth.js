@@ -25,7 +25,7 @@ router.post('/register', async (req, res) => {
       });
     }
     // Vérifier si l'utilisateur existe déjà
-    const existingUser = await User.findOne({ email: email.toLowerCase() });
+    const existingUser = await User.findOne({ email: email });
     if (existingUser) {
       console.log('❌ Utilisateur existe déjà:', email);
       return res.status(409).json({
@@ -37,7 +37,7 @@ router.post('/register', async (req, res) => {
     console.log('✅ Création de l\'utilisateur...');
     const user = new User({
       name,
-      email: email.toLowerCase(),
+      email: email,
       password
     });
     await user.save();
@@ -79,8 +79,8 @@ router.post('/login', async (req, res) => {
         message: 'Email et mot de passe requis'
       });
     }
-    // Trouver l'utilisateur
-    const user = await User.findOne({ email: email.toLowerCase() }).select('+password');
+    // Trouver l'utilisateur (y compris le mot de passe)
+    const user = await User.findOne({ email: email }).select('+password');
     if (!user) {
       return res.status(401).json({
         success: false,
@@ -101,9 +101,7 @@ router.post('/login', async (req, res) => {
         message: 'Email ou mot de passe incorrect'
       });
     }
-    // Mettre à jour la dernière connexion
-    user.lastLogin = new Date();
-    await user.save();
+
     // Générer le token
     const token = generateToken(user._id);
     res.json({
@@ -115,7 +113,6 @@ router.post('/login', async (req, res) => {
           name: user.name,
           email: user.email,
           isAdmin: user.isAdmin,
-          lastLogin: user.lastLogin
         },
         token
       }
@@ -142,7 +139,6 @@ router.get('/me', auth, async (req, res) => {
           name: user.name,
           email: user.email,
           isAdmin: user.isAdmin,
-          lastLogin: user.lastLogin,
           stats: user.getStats(),
           preferences: user.preferences
         }

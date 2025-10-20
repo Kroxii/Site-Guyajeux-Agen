@@ -11,7 +11,6 @@ const userSchema = new mongoose.Schema({
     type: String,
     required: [true, 'L\'email est requis'],
     unique: true,
-    lowercase: true,
     trim: true,
     match: [/^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/, 'Format d\'email invalide']
   },
@@ -50,10 +49,6 @@ const userSchema = new mongoose.Schema({
       type: Number,
       default: 0
     },
-    tournamentsWon: {
-      type: Number,
-      default: 0
-    }
   }
 }, {
   timestamps: true,
@@ -67,8 +62,9 @@ const userSchema = new mongoose.Schema({
 // Index pour optimiser les recherches
 userSchema.index({ email: 1 });
 userSchema.index({ isAdmin: 1 });
-userSchema.index({ createdAt: -1 });
 // Middleware pour hasher le mot de passe avant sauvegarde
+
+// A regarder
 userSchema.pre('save', async function(next) {
   if (!this.isModified('password')) return next();
   try {
@@ -83,22 +79,16 @@ userSchema.pre('save', async function(next) {
 userSchema.methods.comparePassword = async function(candidatePassword) {
   return await bcrypt.compare(candidatePassword, this.password);
 };
+// A regarder
+
 // Méthode pour obtenir les statistiques de l'utilisateur
 userSchema.methods.getStats = function() {
   return {
     tournamentsJoined: this.stats.tournamentsJoined,
-    tournamentsWon: this.stats.tournamentsWon,
     memberSince: this.createdAt,
     lastLogin: this.lastLogin
   };
 };
-// Méthode statique pour trouver les utilisateurs actifs
-userSchema.statics.findActive = function() {
-  return this.find({ isActive: true });
-};
-// Méthode statique pour trouver les administrateurs
-userSchema.statics.findAdmins = function() {
-  return this.find({ isAdmin: true, isActive: true });
-};
+
 module.exports = mongoose.model('User', userSchema);
 
