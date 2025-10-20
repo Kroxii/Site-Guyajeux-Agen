@@ -17,7 +17,8 @@ const userSchema = new mongoose.Schema({
   password: {
     type: String,
     required: [true, 'Le mot de passe est requis'],
-    minlength: [6, 'Le mot de passe doit contenir au moins 6 caractères']
+    minlength: [6, 'Le mot de passe doit contenir au moins 6 caractères'],
+    select: false
   },
   isAdmin: {
     type: Boolean,
@@ -65,6 +66,7 @@ userSchema.index({ isAdmin: 1 });
 // Middleware pour hasher le mot de passe avant sauvegarde
 
 // A regarder
+// Hook mongoose pour hasher le mot de passe avant sauvegarde (à garder ici)
 userSchema.pre('save', async function(next) {
   if (!this.isModified('password')) return next();
   try {

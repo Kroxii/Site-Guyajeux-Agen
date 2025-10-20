@@ -4,9 +4,9 @@ const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
 const rateLimit = require('express-rate-limit');
+const cookieParser = require('cookie-parser');
 const path = require('path');
 require('dotenv').config({ path: path.join(__dirname, '.env') });
-// Import des routes
 const authRoutes = require('./routes/auth');
 const tournamentRoutes = require('./routes/tournaments');
 const userRoutes = require('./routes/users');
@@ -33,6 +33,10 @@ app.use('/api/', limiter);
 // Middleware pour parser JSON
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
+
+// Middleware pour parser les cookies
+app.use(cookieParser());
+
 // Logger
 if (process.env.NODE_ENV === 'development') {
   app.use(morgan('dev'));
@@ -84,13 +88,10 @@ const connectDB = async () => {
       useNewUrlParser: true,
       useUnifiedTopology: true,
     });
-    console.log(`MongoDB connecté: ${conn.connection.host}`);
     // Créer un utilisateur admin par défaut s'il n'existe pas
     await createDefaultAdmin();
   } catch (error) {
     console.error('Erreur de connexion MongoDB:', error);
-    console.log('⚠️  L\'application continuera en mode dégradé (sans base de données)');
-    console.log('💡 Le frontend utilisera automatiquement localStorage comme fallback');
   }
 };
 // Créer un utilisateur admin par défaut
@@ -106,7 +107,6 @@ const createDefaultAdmin = async () => {
         isAdmin: true
       });
       await admin.save();
-      console.log('Utilisateur admin créé: admin@guyajeux.com / admin123');
     }
   } catch (error) {
     console.error('Erreur création admin:', error);
@@ -117,19 +117,14 @@ const PORT = process.env.PORT || 5000;
 const startServer = async () => {
   await connectDB();
   app.listen(PORT, () => {
-    console.log(`\n🚀 Serveur démarré sur le port ${PORT}`);
-    console.log(` Environnement: ${process.env.NODE_ENV}`);
-    console.log(`📡 API disponible sur le port ${PORT}/api/health`);
   });
 };
 startServer();
 // Gestion propre de l'arrêt du serveur
 process.on('SIGTERM', () => {
-  console.log('SIGTERM reçu, arrêt du serveur...');
   process.exit(0);
 });
 process.on('SIGINT', () => {
-  console.log('SIGINT reçu, arrêt du serveur...');
   process.exit(0);
 });
 module.exports = app;

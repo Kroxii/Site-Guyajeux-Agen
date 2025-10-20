@@ -127,24 +127,21 @@ const tournamentSchema = new mongoose.Schema({
 }, {
   timestamps: true
 });
-// Index pour optimiser les recherches
+
 tournamentSchema.index({ date: 1 });
 tournamentSchema.index({ game: 1 });
 tournamentSchema.index({ status: 1 });
 tournamentSchema.index({ createdBy: 1 });
 tournamentSchema.index({ 'participants.user': 1 });
-// Middleware pour mettre à jour le nombre de participants
 tournamentSchema.pre('save', function(next) {
-  this.currentPlayers = this.participants.filter(p => p.status === 'registered' || p.status === 'confirmed').length;
   next();
 });
-// Méthode pour vérifier si un utilisateur peut s'inscrire
+
 tournamentSchema.methods.canUserRegister = function(userId) {
-  // Vérifier si le tournoi n'est pas complet
   if (this.currentPlayers >= this.maxPlayers) {
     return { canRegister: false, reason: 'Tournoi complet' };
   }
-  // Vérifier si l'utilisateur n'est pas déjà inscrit
+  
   const isAlreadyRegistered = this.participants.some(p => 
     p.user.toString() === userId.toString() && 
     (p.status === 'registered' || p.status === 'confirmed')
@@ -152,17 +149,17 @@ tournamentSchema.methods.canUserRegister = function(userId) {
   if (isAlreadyRegistered) {
     return { canRegister: false, reason: 'Déjà inscrit' };
   }
-  // Vérifier si la date d'inscription n'est pas dépassée
+  
   if (this.registrationDeadline && new Date() > this.registrationDeadline) {
     return { canRegister: false, reason: 'Date limite d\'inscription dépassée' };
   }
-  // Vérifier si le tournoi n'est pas dans le passé
+  
   if (new Date() > this.date) {
     return { canRegister: false, reason: 'Tournoi déjà passé' };
   }
   return { canRegister: true };
 };
-// Méthode pour inscrire un utilisateur
+
 tournamentSchema.methods.registerUser = function(userId) {
   const canRegister = this.canUserRegister(userId);
   if (!canRegister.canRegister) {
@@ -175,7 +172,7 @@ tournamentSchema.methods.registerUser = function(userId) {
   });
   return this.save();
 };
-// Méthode pour désinscrire un utilisateur
+
 tournamentSchema.methods.unregisterUser = function(userId) {
   const participantIndex = this.participants.findIndex(p => 
     p.user.toString() === userId.toString() && 
@@ -185,7 +182,7 @@ tournamentSchema.methods.unregisterUser = function(userId) {
     throw new Error('Utilisateur non inscrit à ce tournoi');
   }
   this.participants.splice(participantIndex, 1);
-  // Si il y a une liste d'attente, promouvoir le premier
+  
   if (this.waitingList.length > 0) {
     const nextUser = this.waitingList.shift();
     this.participants.push({
@@ -196,14 +193,14 @@ tournamentSchema.methods.unregisterUser = function(userId) {
   }
   return this.save();
 };
-// Méthode statique pour trouver les tournois à venir
+
 tournamentSchema.statics.findUpcoming = function() {
   return this.find({
     date: { $gt: new Date() },
     status: { $in: ['planned', 'registration_open'] }
   }).sort({ date: 1 });
 };
-// Méthode statique pour trouver les tournois par jeu
+
 tournamentSchema.statics.findByGame = function(game) {
   return this.find({ 
     game: new RegExp(game, 'i'),

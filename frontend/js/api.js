@@ -1,10 +1,11 @@
 // URL relative pour la production
 const API_BASE_URL = '/api';
+
 class ApiService {
   constructor() {
     this.baseURL = API_BASE_URL;
-    this.token = localStorage.getItem('authToken');
   }
+  
   async request(endpoint, options = {}) {
     const url = `${this.baseURL}${endpoint}`;
     const config = {
@@ -12,18 +13,12 @@ class ApiService {
         'Content-Type': 'application/json',
         ...options.headers
       },
+      credentials: 'include', // Important: envoie les cookies avec chaque requête
       ...options
     };
-    if (this.token) {
-      config.headers.Authorization = `Bearer ${this.token}`;
-    }
-    
-    console.log('Requête API:', { url, method: config.method || 'GET', headers: config.headers });
     
     try {
       const response = await fetch(url, config);
-      
-      console.log('Statut réponse:', response.status, response.statusText);
       
       // Vérifier si la réponse contient du contenu
       const contentType = response.headers.get('content-type');
@@ -47,8 +42,6 @@ class ApiService {
         data = { message: await response.text() || 'Erreur inconnue' };
       }
       
-      console.log('Données reçues:', data);
-      
       if (!response.ok) {
         throw new Error(data.message || `Erreur HTTP: ${response.status}`);
       }
@@ -59,7 +52,7 @@ class ApiService {
       // Gestion spécifique des erreurs d'authentification
       if (error.message.includes('401') || error.message.includes('Token') || error.message.includes('Unauthorized')) {
         console.warn('Session expirée, déconnexion automatique');
-        this.logout();
+        window.dispatchEvent(new CustomEvent('auth-expired'));
         throw new Error('Session expirée. Veuillez vous reconnecter.');
       }
       
@@ -76,45 +69,30 @@ class ApiService {
       throw error;
     }
   }
+
   async login(email, password) {
     const response = await this.request('/auth/login', {
       method: 'POST',
       body: JSON.stringify({ email, password })
     });
-    if (response.success) {
-      this.token = response.data.token;
-      localStorage.setItem('authToken', this.token);
-      localStorage.setItem('currentUser', JSON.stringify(response.data.user));
-    }
     return response;
   }
+  
   async register(name, email, password) {
-    console.log('API register appelé avec:', { name, email, password: '***' });
     const response = await this.request('/auth/register', {
       method: 'POST',
       body: JSON.stringify({ name, email, password })
     });
-    console.log('Réponse API register:', response);
-    if (response.success) {
-      this.token = response.data.token;
-      localStorage.setItem('authToken', this.token);
-      localStorage.setItem('currentUser', JSON.stringify(response.data.user));
-    }
     return response;
   }
+  
   async logout() {
     try {
-      if (this.token) {
-        await this.request('/auth/logout', { method: 'POST' });
-      }
+      await this.request('/auth/logout', { method: 'POST' });
     } catch (error) {
       console.error('Erreur lors de la déconnexion:', error);
     } finally {
-      this.token = null;
-      localStorage.removeItem('authToken');
-      localStorage.removeItem('currentUser');
-      currentUser = null;
-      updateAuthUI();
+      window.dispatchEvent(new CustomEvent('user-logout'));
     }
   }
   async getCurrentUser() {

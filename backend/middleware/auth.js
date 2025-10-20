@@ -3,21 +3,31 @@ const User = require('../models/User');
 // Middleware d'authentification
 const auth = async (req, res, next) => {
   try {
-    const token = req.header('Authorization')?.replace('Bearer ', '');
+    // Essayer d'abord de lire le token depuis les cookies
+    let token = req.cookies?.authToken;
+    
+    // Si pas de cookie, vérifier le header Authorization (pour compatibilité)
+    if (!token) {
+      token = req.header('Authorization')?.replace('Bearer ', '');
+    }
+    
     if (!token) {
       return res.status(401).json({
         success: false,
         message: 'Token d\'accès requis'
       });
     }
+    
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     const user = await User.findById(decoded.id).select('-password');
+    
     if (!user || !user.isActive) {
       return res.status(401).json({
         success: false,
         message: 'Token invalide ou utilisateur désactivé'
       });
     }
+    
     req.user = user;
     next();
   } catch (error) {

@@ -3,19 +3,21 @@
 
 // Vérifier l'authentification au chargement
 async function checkAuth() {
-    const token = localStorage.getItem('authToken');
     const savedUser = localStorage.getItem('currentUser');
     
-    if (token && savedUser) {
+    // Si on a des données utilisateur en localStorage, vérifier avec le serveur
+    if (savedUser) {
         try {
-            // Vérifier si le token est toujours valide
+            // Vérifier si le cookie est toujours valide en appelant l'API
             currentUser = await api.getCurrentUser();
             localStorage.setItem('currentUser', JSON.stringify(currentUser));
             updateAuthUI();
         } catch (error) {
-            console.error('Token invalide:', error);
-            // Token invalide, déconnecter l'utilisateur
-            await api.logout();
+            console.error('Session invalide:', error);
+            // Cookie invalide, nettoyer et déconnecter
+            localStorage.removeItem('currentUser');
+            currentUser = null;
+            updateAuthUI();
         }
     } else {
         currentUser = null;
@@ -147,7 +149,6 @@ async function logout() {
         console.error('Erreur lors de la déconnexion:', error);
         // Forcer la déconnexion locale même en cas d'erreur
         currentUser = null;
-        localStorage.removeItem('authToken');
         localStorage.removeItem('currentUser');
         updateAuthUI();
     }

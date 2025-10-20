@@ -7,18 +7,15 @@ const router = express.Router();
 // @access  Public
 router.post('/register', async (req, res) => {
   try {
-    console.log('📝 Tentative d\'inscription reçue:', req.body);
     const { name, email, password } = req.body;
     // Validation
     if (!name || !email || !password) {
-      console.log('❌ Validation échouée: champs manquants');
       return res.status(400).json({
         success: false,
         message: 'Tous les champs sont requis'
       });
     }
     if (password.length < 6) {
-      console.log('❌ Validation échouée: mot de passe trop court');
       return res.status(400).json({
         success: false,
         message: 'Le mot de passe doit contenir au moins 6 caractères'
@@ -27,24 +24,30 @@ router.post('/register', async (req, res) => {
     // Vérifier si l'utilisateur existe déjà
     const existingUser = await User.findOne({ email: email });
     if (existingUser) {
-      console.log('❌ Utilisateur existe déjà:', email);
       return res.status(409).json({
         success: false,
         message: 'Un compte avec cet email existe déjà'
       });
     }
     // Créer le nouvel utilisateur
-    console.log('✅ Création de l\'utilisateur...');
     const user = new User({
       name,
       email: email,
       password
     });
     await user.save();
-    console.log('✅ Utilisateur créé avec succès:', user._id);
     // Générer le token
     const token = generateToken(user._id);
-    console.log('✅ Token généré pour:', user._id);
+    
+    // Définir le cookie sécurisé
+    const isProduction = process.env.NODE_ENV === 'production';
+    res.cookie('authToken', token, {
+      httpOnly: true,
+      secure: isProduction,
+      sameSite: 'strict',
+      maxAge: 7 * 24 * 60 * 60 * 1000
+    });
+    
     res.status(201).json({
       success: true,
       message: 'Compte créé avec succès',
@@ -54,8 +57,7 @@ router.post('/register', async (req, res) => {
           name: user.name,
           email: user.email,
           isAdmin: user.isAdmin
-        },
-        token
+        }
       }
     });
   } catch (error) {
@@ -104,6 +106,16 @@ router.post('/login', async (req, res) => {
 
     // Générer le token
     const token = generateToken(user._id);
+    
+    // Définir le cookie sécurisé
+    const isProduction = process.env.NODE_ENV === 'production';
+    res.cookie('authToken', token, {
+      httpOnly: true,
+      secure: isProduction,
+      sameSite: 'strict',
+      maxAge: 7 * 24 * 60 * 60 * 1000
+    });
+    
     res.json({
       success: true,
       message: 'Connexion réussie',
@@ -113,8 +125,7 @@ router.post('/login', async (req, res) => {
           name: user.name,
           email: user.email,
           isAdmin: user.isAdmin,
-        },
-        token
+        }
       }
     });
   } catch (error) {
@@ -226,9 +237,16 @@ router.post('/change-password', auth, async (req, res) => {
   }
 });
 // @route   POST /api/auth/logout
-// @desc    Déconnexion (côté client principalement)
+// @desc    Déconnexion et suppression du cookie
 // @access  Private
 router.post('/logout', auth, (req, res) => {
+  // Supprimer le cookie
+  res.clearCookie('authToken', {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'strict'
+  });
+  
   res.json({
     success: true,
     message: 'Déconnexion réussie'

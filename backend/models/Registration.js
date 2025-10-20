@@ -65,39 +65,39 @@ const registrationSchema = new mongoose.Schema({
 }, {
   timestamps: true
 });
-// Index composé pour éviter les inscriptions multiples
+
 registrationSchema.index({ user: 1, tournament: 1 }, { unique: true });
 registrationSchema.index({ tournament: 1, status: 1 });
 registrationSchema.index({ user: 1, registrationDate: -1 });
-// Méthode pour confirmer l'inscription
+
 registrationSchema.methods.confirm = function() {
   this.status = 'confirmed';
   return this.save();
 };
-// Méthode pour annuler l'inscription
+
 registrationSchema.methods.cancel = function() {
   this.status = 'cancelled';
   return this.save();
 };
-// Méthode pour marquer comme présent
+
 registrationSchema.methods.checkIn = function() {
   this.checkedIn = true;
   this.checkedInAt = new Date();
   return this.save();
 };
-// Méthode statique pour obtenir les inscriptions d'un utilisateur
+
 registrationSchema.statics.findByUser = function(userId) {
   return this.find({ user: userId })
     .populate('tournament', 'name date game maxPlayers currentPlayers')
     .sort({ registrationDate: -1 });
 };
-// Méthode statique pour obtenir les inscriptions d'un tournoi
+
 registrationSchema.statics.findByTournament = function(tournamentId) {
   return this.find({ tournament: tournamentId })
     .populate('user', 'name email')
     .sort({ registrationDate: 1 });
 };
-// Méthode statique pour obtenir les statistiques d'inscription
+
 registrationSchema.statics.getStats = async function() {
   const totalRegistrations = await this.countDocuments();
   const activeRegistrations = await this.countDocuments({ 

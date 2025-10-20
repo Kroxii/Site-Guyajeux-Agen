@@ -175,15 +175,10 @@ router.delete('/:id', auth, requireAdmin, async (req, res) => {
       });
     }
 
-    // Vérifier s'il y a des inscriptions
-    const registrations = await Registration.find({ tournament: req.params.id });
-    if (registrations.length > 0) {
-      return res.status(400).json({
-        success: false,
-        message: 'Impossible de supprimer un tournoi avec des inscriptions'
-      });
-    }
+    // Supprimer d'abord toutes les inscriptions associées
+    await Registration.deleteMany({ tournament: req.params.id });
 
+    // Puis supprimer le tournoi
     await Tournament.findByIdAndDelete(req.params.id);
 
     res.json({
@@ -255,8 +250,12 @@ router.post('/:id/register', auth, async (req, res) => {
 
     await registration.save();
     
-    // Incrémenter le nombre de joueurs inscrits
-    tournament.currentPlayers = (tournament.currentPlayers || 0) + 1;
+    // Synchroniser le nombre de joueurs avec le nombre réel d'inscriptions
+    const actualCount = await Registration.countDocuments({ 
+      tournament: req.params.id,
+      status: { $nin: ['cancelled'] }
+    });
+    tournament.currentPlayers = actualCount;
     await tournament.save();
     
     await registration.populate('user', 'name email');
@@ -295,10 +294,14 @@ router.delete('/:id/register', auth, async (req, res) => {
 
     await Registration.findByIdAndDelete(registration._id);
     
-    // Décrémenter le nombre de joueurs inscrits
+    // Synchroniser le nombre de joueurs avec le nombre réel d'inscriptions
     const tournament = await Tournament.findById(req.params.id);
-    if (tournament && tournament.currentPlayers > 0) {
-      tournament.currentPlayers = tournament.currentPlayers - 1;
+    if (tournament) {
+      const actualCount = await Registration.countDocuments({ 
+        tournament: req.params.id,
+        status: { $nin: ['cancelled'] }
+      });
+      tournament.currentPlayers = actualCount;
       await tournament.save();
     }
 

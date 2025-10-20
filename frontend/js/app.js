@@ -10,26 +10,36 @@ let api = null;
 let currentCalendarDate = new Date(); // Pour la navigation du calendrier
 
 document.addEventListener('DOMContentLoaded', async function() {
-    console.log(' Initialisation de l\'application Guyajeux Agen');
-    
     try {
         api = new ApiService();
-        console.log(' API Service initialisé');
         
         initTheme();
         initNavigation();
         await checkAuthentication();
         await loadInitialData();
         initEventListeners();
+        initAuthEventListeners();
         showSection('home');
-        
-        console.log(' Application initialisée avec succès');
-        
     } catch (error) {
         console.error(' Erreur lors de l\'initialisation:', error);
         showNotification('Erreur lors de l\'initialisation de l\'application', 'error');
     }
 });
+
+// Écouter les événements d'authentification
+function initAuthEventListeners() {
+    window.addEventListener('auth-expired', () => {
+        currentUser = null;
+        updateAuthUI(false);
+        showNotification('Session expirée. Veuillez vous reconnecter.', 'warning');
+        navigateToSection('home');
+    });
+    
+    window.addEventListener('user-logout', () => {
+        currentUser = null;
+        updateAuthUI(false);
+    });
+}
 
 function initTheme() {
     const savedTheme = localStorage.getItem('theme') || 'light';
@@ -86,15 +96,12 @@ function updateNavigation(activeSection) {
 }
 
 function showSection(sectionName) {
-    console.log('📍 showSection appelé:', sectionName);
     const sections = document.querySelectorAll('.section');
     sections.forEach(section => section.classList.remove('active'));
     
     const targetSection = document.getElementById(sectionName);
-    console.log('Section trouvée:', targetSection);
     if (targetSection) {
         targetSection.classList.add('active');
-        console.log('Classe active ajoutée, classes:', targetSection.className);
     }
 }
 
@@ -153,47 +160,20 @@ function closeModal(modalId) {
 
 async function checkAuthentication() {
     try {
-        const token = localStorage.getItem('authToken');
-        const savedUser = localStorage.getItem('currentUser');
-        
-        console.log('🔐 Vérification authentification...', { hasToken: !!token, hasSavedUser: !!savedUser });
-        
-        if (token && savedUser && api) {
-            // Restaurer le token dans l'API
-            api.token = token;
-            
+        if (api) {
             try {
-                // Vérifier que le token est toujours valide
                 const user = await api.getCurrentUser();
                 if (user) {
                     currentUser = user;
-                    // Mettre à jour le localStorage avec les données fraîches
-                    localStorage.setItem('currentUser', JSON.stringify(user));
-                    console.log('✅ Utilisateur connecté:', user.name);
                     updateAuthUI(true);
                     return true;
                 }
             } catch (error) {
-                // Token invalide ou expiré
-                console.warn('⚠️ Token invalide:', error.message);
-                localStorage.removeItem('authToken');
-                localStorage.removeItem('currentUser');
-            }
-        } else if (savedUser && !api) {
-            // API pas encore initialisée, restaurer temporairement depuis le cache
-            try {
-                currentUser = JSON.parse(savedUser);
-                console.log('📦 Utilisateur restauré depuis le cache:', currentUser.name);
-                updateAuthUI(true);
-                return true;
-            } catch (error) {
-                console.error('Erreur parsing savedUser:', error);
+                console.warn('⚠️ Session invalide:', error.message);
             }
         }
     } catch (error) {
         console.error('❌ Erreur authentification:', error);
-        localStorage.removeItem('authToken');
-        localStorage.removeItem('currentUser');
     }
     
     currentUser = null;
@@ -231,18 +211,11 @@ async function handleLogin(event) {
         const email = formData.get('email');
         const password = formData.get('password');
         
-        console.log('🔐 Tentative de connexion pour:', email);
-        
         const response = await api.login(email, password);
-        
-        console.log('📥 Réponse login:', response);
         
         if (response.success) {
             // Le token et l'utilisateur sont déjà sauvegardés dans api.login()
             currentUser = response.data.user;
-            
-            console.log('✅ Connexion réussie:', currentUser.name);
-            console.log('💾 Token sauvegardé:', !!localStorage.getItem('authToken'));
             
             updateAuthUI(true);
             closeModal('loginModal');
@@ -276,8 +249,6 @@ async function handleRegister(event) {
             confirmPassword: formData.get('confirmPassword')
         };
         
-        console.log('Données d\'inscription:', userData);
-        
         if (userData.password !== userData.confirmPassword) {
             throw new Error('Les mots de passe ne correspondent pas');
         }
@@ -286,16 +257,11 @@ async function handleRegister(event) {
             throw new Error('Le mot de passe doit contenir au moins 6 caractères');
         }
         
-        console.log('Envoi de la requête d\'inscription...');
         const response = await api.register(userData.name, userData.email, userData.password);
-        console.log('Réponse reçue:', response);
         
         if (response.success) {
             // Le token et l'utilisateur sont déjà sauvegardés dans api.register()
             currentUser = response.data.user;
-            
-            console.log('✅ Inscription réussie:', currentUser.name);
-            console.log('💾 Token sauvegardé:', !!localStorage.getItem('authToken'));
             
             updateAuthUI(true);
             closeModal('registerModal');
@@ -312,8 +278,6 @@ async function handleRegister(event) {
 }
 
 async function logout() {
-    console.log('🚪 Déconnexion...');
-    
     try {
         if (api) {
             await api.logout();
@@ -321,14 +285,7 @@ async function logout() {
     } catch (error) {
         console.error('Erreur logout:', error);
     } finally {
-        // Nettoyer complètement la session
-        localStorage.removeItem('authToken');
-        localStorage.removeItem('currentUser');
-        api.token = null;
         currentUser = null;
-        
-        console.log('✅ Session nettoyée');
-        
         updateAuthUI(false);
         showNotification('Vous avez été déconnecté', 'info');
         navigateToSection('home');
@@ -342,7 +299,6 @@ async function loadInitialData() {
         if (api) {
             // Charger les tournois
             tournaments = await api.getTournaments() || [];
-            console.log(' ' + tournaments.length + ' tournois chargés');
             
             // Charger les statistiques
             await loadStats();
@@ -359,7 +315,6 @@ async function loadInitialData() {
 async function loadStats() {
     try {
         const stats = await api.getStats();
-        console.log('📊 Statistiques chargées:', stats);
         
         // Mettre à jour les compteurs sur la page d'accueil
         const totalMembersEl = document.getElementById('totalMembers');
@@ -435,26 +390,17 @@ async function loadHomeData() {
 }
 
 async function loadCalendarData() {
-    console.log('🔄 Chargement des données du calendrier...');
-    console.log('📋 Tournois disponibles:', tournaments.length, tournaments);
-    
     const calendarGrid = document.getElementById('calendarGrid');
     const currentMonthElement = document.getElementById('currentMonth');
-    console.log('🔍 Éléments trouvés:', {
-        calendarGrid: calendarGrid,
-        currentMonth: currentMonthElement
-    });
     
     try {
         renderCalendar();
-        console.log('✅ renderCalendar() terminé');
     } catch (error) {
         console.error('❌ Erreur dans renderCalendar():', error);
     }
     
     try {
         renderCalendarEvents();
-        console.log('✅ renderCalendarEvents() terminé');
     } catch (error) {
         console.error('❌ Erreur dans renderCalendarEvents():', error);
     }
@@ -500,21 +446,14 @@ async function loadUserRegistrations() {
 
 async function loadAdminData() {
     try {
-        console.log('📊 loadAdminData appelé');
-        console.log('Current user admin?', currentUser?.isAdmin);
-        console.log('Tournaments:', tournaments);
-        
         if (!currentUser || !currentUser.isAdmin || !api) {
-            console.warn('⚠️ Accès refusé ou API non disponible');
             return;
         }
         
         const adminTournamentsList = document.getElementById('adminTournamentsList');
-        console.log('Container admin tournois:', adminTournamentsList);
         
         if (adminTournamentsList) {
             renderAdminTournaments(adminTournamentsList, tournaments);
-            console.log('✅ Tournois admin rendus');
         }
     } catch (error) {
         console.error('❌ Erreur chargement admin:', error);
@@ -797,12 +736,28 @@ async function handleEditTournament(event) {
         const time = formData.get('time');
         const dateTime = new Date(`${date}T${time}`);
         
+        // Validation
+        if (isNaN(dateTime.getTime())) {
+            throw new Error('Date invalide');
+        }
+        
+        const entryFee = parseFloat(formData.get('price')) || 0;
+        const maxPlayers = parseInt(formData.get('maxPlayers'), 10);
+        
+        if (isNaN(maxPlayers) || maxPlayers < 2) {
+            throw new Error('Le nombre de joueurs doit être au moins 2');
+        }
+        
+        if (isNaN(entryFee) || entryFee < 0) {
+            throw new Error('Le prix d\'entrée doit être un nombre positif');
+        }
+        
         const tournamentData = {
             name: formData.get('name'),
             game: formData.get('game'),
             date: dateTime.toISOString(),
-            entryFee: parseFloat(formData.get('price')),
-            maxPlayers: parseInt(formData.get('maxPlayers')),
+            entryFee: entryFee,
+            maxPlayers: maxPlayers,
             description: formData.get('description')
         };
         
@@ -936,29 +891,15 @@ function showTournamentDetails(tournamentId) {
 }
 
 function renderCalendar() {
-    console.log('🎯 DÉBUT renderCalendar()');
-    
     const calendarGrid = document.getElementById('calendarGrid');
     const currentMonthElement = document.getElementById('currentMonth');
     
-    console.log('🔍 Dans renderCalendar, éléments:', {
-        grid: calendarGrid,
-        month: currentMonthElement
-    });
-    
     if (!calendarGrid || !currentMonthElement) {
-        console.warn('⚠️ Éléments du calendrier non trouvés');
         return;
     }
     
     const currentMonth = currentCalendarDate.getMonth();
     const currentYear = currentCalendarDate.getFullYear();
-    
-    console.log('📅 Rendu du calendrier:', {
-        mois: currentMonth + 1,
-        année: currentYear,
-        date: currentCalendarDate.toLocaleDateString('fr-FR')
-    });
     
     currentMonthElement.textContent = currentCalendarDate.toLocaleDateString('fr-FR', { 
         month: 'long', 
@@ -975,13 +916,6 @@ function renderCalendar() {
     // Calculer la date de début (premier dimanche à afficher)
     const startDate = new Date(firstDayOfMonth);
     startDate.setDate(startDate.getDate() - firstDayOfWeek);
-    
-    console.log('📊 Infos calendrier:', {
-        premierJourDuMois: firstDayOfMonth.toLocaleDateString('fr-FR'),
-        dernierJourDuMois: lastDayOfMonth.toLocaleDateString('fr-FR'),
-        premierJourSemaine: firstDayOfWeek,
-        dateDebut: startDate.toLocaleDateString('fr-FR')
-    });
     
     let calendarHTML = '';
     
@@ -1019,11 +953,6 @@ function renderCalendar() {
                 eventHTML +
             '</div>';
     }
-    
-    console.log('✅ Calendrier généré:', {
-        totalJours: 42,
-        joursAvecEvenements: eventCount
-    });
     
     calendarGrid.innerHTML = calendarHTML;
     
@@ -1207,7 +1136,6 @@ function showNotification(message, type, duration) {
     
     const notificationsContainer = document.getElementById('notifications');
     if (!notificationsContainer) {
-        console.log('Notification ' + type + ': ' + message);
         return;
     }
     
@@ -1249,8 +1177,6 @@ function showNotification(message, type, duration) {
 }
 
 function showAdminPanel() {
-    console.log('🔧 showAdminPanel appelé');
-    console.log('Current user:', currentUser);
     navigateToSection('admin');
 }
 
