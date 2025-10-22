@@ -37,33 +37,6 @@ const tournamentSchema = new mongoose.Schema({
     enum: ['planned', 'registration_open', 'registration_closed', 'in_progress', 'completed', 'cancelled'],
     default: 'registration_open'
   },
-  prize: {
-    type: String,
-    trim: true
-  },
-  entryFee: {
-    type: Number,
-    default: 0,
-    min: 0
-  },
-  location: {
-    address: {
-      type: String,
-      trim: true
-    },
-    room: {
-      type: String,
-      trim: true
-    }
-  },
-  rules: {
-    type: String,
-    trim: true
-  },
-  format: {
-    type: String,
-    trim: true
-  },
   createdBy: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
@@ -94,23 +67,6 @@ const tournamentSchema = new mongoose.Schema({
     registrationDate: {
       type: Date,
       default: Date.now
-    }
-  }],
-  results: [{
-    user: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'User'
-    },
-    position: {
-      type: Number,
-      min: 1
-    },
-    points: {
-      type: Number,
-      default: 0
-    },
-    prize: {
-      type: String
     }
   }],
   tags: [{

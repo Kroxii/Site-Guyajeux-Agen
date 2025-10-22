@@ -31,37 +31,6 @@ const registrationSchema = new mongoose.Schema({
   checkedInAt: {
     type: Date
   },
-  result: {
-    position: {
-      type: Number,
-      min: 1
-    },
-    points: {
-      type: Number,
-      default: 0
-    },
-    matches: {
-      won: { type: Number, default: 0 },
-      lost: { type: Number, default: 0 },
-      drawn: { type: Number, default: 0 }
-    },
-    prize: {
-      type: String,
-      trim: true
-    }
-  },
-  feedback: {
-    rating: {
-      type: Number,
-      min: 1,
-      max: 5
-    },
-    comment: {
-      type: String,
-      trim: true,
-      maxlength: [1000, 'Le commentaire ne peut pas dépasser 1000 caractères']
-    }
-  }
 }, {
   timestamps: true
 });

@@ -65,7 +65,6 @@ userSchema.index({ email: 1 });
 userSchema.index({ isAdmin: 1 });
 // Middleware pour hasher le mot de passe avant sauvegarde
 
-// A regarder
 // Hook mongoose pour hasher le mot de passe avant sauvegarde (à garder ici)
 userSchema.pre('save', async function(next) {
   if (!this.isModified('password')) return next();
@@ -81,7 +80,6 @@ userSchema.pre('save', async function(next) {
 userSchema.methods.comparePassword = async function(candidatePassword) {
   return await bcrypt.compare(candidatePassword, this.password);
 };
-// A regarder
 
 // Méthode pour obtenir les statistiques de l'utilisateur
 userSchema.methods.getStats = function() {
