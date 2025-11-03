@@ -1,27 +1,43 @@
-﻿// ===============================================
-// GUYAJEUX AGEN - APPLICATION PRINCIPALE
-// ===============================================
-
-// Variables globales
-let currentUser = null;
-let currentSection = 'home';
+﻿let currentUser = null;
 let tournaments = [];
 let api = null;
-let currentCalendarDate = new Date(); // Pour la navigation du calendrier
+let currentCalendarDate = new Date();
+
+function getHomePath() {
+    return '/';
+}
+
+// Fonction utilitaire pour obtenir la section actuelle basée sur la page
+function getCurrentSection() {
+    const path = window.location.pathname;
+    const fileName = path.substring(path.lastIndexOf('/') + 1) || 'index.html';
+    
+    if (fileName === 'index.html' || fileName === '' || path === '/') {
+        return 'home';
+    } else if (fileName === 'calendrier.html') {
+        return 'calendar';
+    } else if (fileName === 'tournois.html') {
+        return 'tournaments';
+    } else if (fileName === 'admin.html') {
+        return 'admin';
+    }
+    return 'home';
+}
 
 document.addEventListener('DOMContentLoaded', async function() {
     try {
         api = new ApiService();
         
         initTheme();
-        initNavigation();
         await checkAuthentication();
         await loadInitialData();
         initEventListeners();
         initAuthEventListeners();
-        showSection('home');
+        
+        // Charger les données de la page actuelle
+        await loadCurrentPageData();
     } catch (error) {
-        console.error(' Erreur lors de l\'initialisation:', error);
+        console.error('Erreur lors de l\'initialisation:', error);
         showNotification('Erreur lors de l\'initialisation de l\'application', 'error');
     }
 });
@@ -32,7 +48,7 @@ function initAuthEventListeners() {
         currentUser = null;
         updateAuthUI(false);
         showNotification('Session expirée. Veuillez vous reconnecter.', 'warning');
-        navigateToSection('home');
+        window.location.href = getHomePath();
     });
     
     window.addEventListener('user-logout', () => {
@@ -63,66 +79,29 @@ function updateThemeIcon(theme) {
     }
 }
 
-function initNavigation() {
-    const navLinks = document.querySelectorAll('.nav-link');
-    navLinks.forEach(link => {
-        link.addEventListener('click', handleNavClick);
-    });
-}
-
-function handleNavClick(e) {
-    e.preventDefault();
-    const section = e.target.closest('.nav-link').getAttribute('data-section');
-    if (section) {
-        navigateToSection(section);
-    }
-}
-
-function navigateToSection(sectionName) {
-    updateNavigation(sectionName);
-    showSection(sectionName);
-    loadSectionData(sectionName);
-}
-
-function updateNavigation(activeSection) {
-    const navLinks = document.querySelectorAll('.nav-link');
-    navLinks.forEach(link => {
-        link.classList.remove('active');
-        if (link.getAttribute('data-section') === activeSection) {
-            link.classList.add('active');
-        }
-    });
-    currentSection = activeSection;
-}
-
-function showSection(sectionName) {
-    const sections = document.querySelectorAll('.section');
-    sections.forEach(section => section.classList.remove('active'));
+// Charger les données de la page actuelle
+async function loadCurrentPageData() {
+    const path = window.location.pathname;
+    const fileName = path.substring(path.lastIndexOf('/') + 1) || 'index.html';
     
-    const targetSection = document.getElementById(sectionName);
-    if (targetSection) {
-        targetSection.classList.add('active');
-    }
-}
-
-async function loadSectionData(sectionName) {
     try {
-        switch (sectionName) {
-            case 'home':
+        switch (fileName) {
+            case 'index.html':
+            case '':
                 await loadHomeData();
                 break;
-            case 'calendar':
+            case 'calendrier.html':
                 await loadCalendarData();
                 break;
-            case 'tournaments':
+            case 'tournois.html':
                 await loadTournamentsData();
                 break;
-            case 'admin':
+            case 'admin.html':
                 if (currentUser && currentUser.isAdmin) {
                     await loadAdminData();
                 } else {
                     showNotification('Accès refusé. Vous devez être administrateur.', 'error');
-                    navigateToSection('home');
+                    window.location.href = getHomePath();
                 }
                 break;
         }
@@ -222,7 +201,7 @@ async function handleLogin(event) {
             showNotification(`Bienvenue ${currentUser.name} !`, 'success');
             
             // Recharger les données si nécessaire
-            if (currentSection === 'tournaments') {
+            if (getCurrentSection() === 'tournaments') {
                 await loadTournamentsData();
             }
         } else {
@@ -288,7 +267,7 @@ async function logout() {
         currentUser = null;
         updateAuthUI(false);
         showNotification('Vous avez été déconnecté', 'info');
-        navigateToSection('home');
+        window.location.href = getHomePath();
     }
 }
 
@@ -410,7 +389,7 @@ async function loadTournamentsData() {
     try {
         const tournamentsGrid = document.getElementById('tournamentsGrid');
         if (tournamentsGrid) {
-            renderTournamentsGrid(tournamentsGrid, tournaments);
+            applyTournamentFilters();
         }
         
         if (currentUser) {
@@ -423,6 +402,38 @@ async function loadTournamentsData() {
     } catch (error) {
         console.error('Erreur chargement tournois:', error);
     }
+}
+
+function applyTournamentFilters() {
+    const tournamentsGrid = document.getElementById('tournamentsGrid');
+    const searchInput = document.getElementById('tournamentSearch');
+    const activeFilter = document.querySelector('.filter-btn.active');
+    
+    if (!tournamentsGrid) return;
+    
+    let filteredTournaments = [...tournaments];
+
+    if (activeFilter) {
+        const filterType = activeFilter.dataset.filter;
+        if (filterType !== 'all') {
+            filteredTournaments = filteredTournaments.filter(tournament => {
+                const status = getTournamentStatus(tournament);
+                return status === filterType;
+            });
+        }
+    }
+    
+    if (searchInput && searchInput.value.trim() !== '') {
+        const searchTerm = searchInput.value.trim();
+        filteredTournaments = filteredTournaments.filter(tournament => {
+            const searchLower = searchTerm.toLowerCase();
+            return tournament.name.toLowerCase().includes(searchLower) ||
+                   tournament.game.toLowerCase().includes(searchLower) ||
+                   (tournament.description && tournament.description.toLowerCase().includes(searchLower));
+        });
+    }
+    
+    renderTournamentsGrid(tournamentsGrid, filteredTournaments);
 }
 
 async function loadUserRegistrations() {
@@ -454,6 +465,14 @@ async function loadAdminData() {
         
         if (adminTournamentsList) {
             renderAdminTournaments(adminTournamentsList, tournaments);
+        }
+
+        // Charger les utilisateurs
+        const usersResponse = await api.getUsers();
+        const adminUsersList = document.getElementById('adminUsersList');
+        
+        if (adminUsersList && usersResponse) {
+            renderAdminUsers(adminUsersList, usersResponse);
         }
     } catch (error) {
         console.error('❌ Erreur chargement admin:', error);
@@ -607,6 +626,29 @@ function renderAdminTournaments(container, tournamentsList) {
     });
 }
 
+function renderAdminUsers(container, usersData) {
+    if (!container) return;
+    
+    const usersList = Array.isArray(usersData) ? usersData : (usersData.users || []);
+    
+    container.innerHTML = usersList.map(user => {
+        const userId = user._id || user.id;
+        const createdAt = user.createdAt ? formatDate(user.createdAt) : 'N/A';
+        const lastLogin = user.lastLogin ? formatDate(user.lastLogin) : 'Jamais connecté';
+        const isAdmin = user.isAdmin ? '<span class="badge badge-admin">Admin</span>' : '';
+        const userName = user.name || user.username || 'Utilisateur';
+        
+        return '<div class="admin-user-item">' +
+            '<div class="user-info">' +
+                '<h4>' + userName + ' ' + isAdmin + '</h4>' +
+                '<p><i class="fas fa-envelope"></i> ' + user.email + '</p>' +
+                '<p><i class="fas fa-calendar-plus"></i> Inscription: ' + createdAt + '</p>' +
+                '<p><i class="fas fa-clock"></i> Dernière connexion: ' + lastLogin + '</p>' +
+            '</div>' +
+        '</div>';
+    }).join('');
+}
+
 async function registerForTournament(tournamentId) {
     if (!currentUser) {
         openModal('loginModal');
@@ -620,10 +662,10 @@ async function registerForTournament(tournamentId) {
         if (response.success) {
             showNotification('Inscription réussie !', 'success');
             await loadInitialData();
-            if (currentSection === 'tournaments') {
+            if (getCurrentSection() === 'tournaments') {
                 await loadTournamentsData();
             }
-            if (currentSection === 'home') {
+            if (getCurrentSection() === 'home') {
                 await loadHomeData();
             }
         } else {
@@ -643,7 +685,12 @@ async function cancelRegistration(tournamentId) {
         return;
     }
     
-    if (!confirm('Êtes-vous sûr de vouloir annuler votre inscription à ce tournoi ?')) {
+    const confirmed = await showConfirm(
+        'Êtes-vous sûr de vouloir annuler votre inscription à ce tournoi ?',
+        'Annuler l\'inscription'
+    );
+    
+    if (!confirmed) {
         return;
     }
     
@@ -654,10 +701,10 @@ async function cancelRegistration(tournamentId) {
         if (response.success) {
             showNotification('Désinscription réussie !', 'success');
             await loadInitialData();
-            if (currentSection === 'tournaments') {
+            if (getCurrentSection() === 'tournaments') {
                 await loadTournamentsData();
             }
-            if (currentSection === 'home') {
+            if (getCurrentSection() === 'home') {
                 await loadHomeData();
             }
         } else {
@@ -697,6 +744,11 @@ async function handleCreateTournament(event) {
             description: formData.get('description')
         };
         
+        const registrationDeadline = formData.get('registrationDeadline');
+        if (registrationDeadline) {
+            tournamentData.registrationDeadline = new Date(registrationDeadline).toISOString();
+        }
+        
         const response = await api.createTournament(tournamentData);
         
         if (response) {
@@ -704,7 +756,7 @@ async function handleCreateTournament(event) {
             event.target.reset();
             showNotification('Tournoi créé avec succès !', 'success');
             await loadInitialData();
-            if (currentSection === 'admin') {
+            if (getCurrentSection() === 'admin') {
                 await loadAdminData();
             }
         } else {
@@ -744,8 +796,8 @@ async function handleEditTournament(event) {
         const entryFee = parseFloat(formData.get('price')) || 0;
         const maxPlayers = parseInt(formData.get('maxPlayers'), 10);
         
-        if (isNaN(maxPlayers) || maxPlayers < 2) {
-            throw new Error('Le nombre de joueurs doit être au moins 2');
+        if (isNaN(maxPlayers) || maxPlayers < 4) {
+            throw new Error('Le nombre de joueurs doit être au moins 4');
         }
         
         if (isNaN(entryFee) || entryFee < 0) {
@@ -761,13 +813,18 @@ async function handleEditTournament(event) {
             description: formData.get('description')
         };
         
+        const registrationDeadline = formData.get('registrationDeadline');
+        if (registrationDeadline) {
+            tournamentData.registrationDeadline = new Date(registrationDeadline).toISOString();
+        }
+        
         const response = await api.updateTournament(tournamentId, tournamentData);
         
         if (response) {
             closeModal('editTournamentModal');
             showNotification('Tournoi modifié avec succès !', 'success');
             await loadInitialData();
-            if (currentSection === 'admin') {
+            if (getCurrentSection() === 'admin') {
                 await loadAdminData();
             }
         } else {
@@ -794,16 +851,16 @@ async function handleDeleteTournament() {
     const playerCount = tournament ? (tournament.currentPlayers || 0) : 0;
     
     // Message de confirmation adapté
-    let confirmMessage = 'Êtes-vous sûr de vouloir supprimer ce tournoi ?\n';
+    let confirmMessage = 'Êtes-vous sûr de vouloir supprimer ce tournoi ?\n\n';
     if (playerCount > 0) {
-        confirmMessage += `\n⚠️ ATTENTION : Ce tournoi a ${playerCount} joueur${playerCount > 1 ? 's' : ''} inscrit${playerCount > 1 ? 's' : ''}.\n`;
-        confirmMessage += 'La suppression sera impossible tant que des joueurs sont inscrits.\n\n';
-        confirmMessage += 'Vous devez d\'abord annuler toutes les inscriptions.';
-    } else {
-        confirmMessage += '\nCette action est irréversible.';
+        confirmMessage += `⚠️ ATTENTION : Ce tournoi a ${playerCount} joueur${playerCount > 1 ? 's' : ''} inscrit${playerCount > 1 ? 's' : ''}.\n`;
+        confirmMessage += 'Toutes les inscriptions seront automatiquement annulées.\n\n';
     }
+    confirmMessage += 'Cette action est irréversible.';
     
-    if (!confirm(confirmMessage)) {
+    const confirmed = await showConfirm(confirmMessage, 'Supprimer le tournoi');
+    
+    if (!confirmed) {
         return;
     }
     
@@ -815,7 +872,7 @@ async function handleDeleteTournament() {
             closeModal('editTournamentModal');
             showNotification('Tournoi supprimé avec succès !', 'success');
             await loadInitialData();
-            if (currentSection === 'admin') {
+            if (getCurrentSection() === 'admin') {
                 await loadAdminData();
             }
         } else {
@@ -823,18 +880,7 @@ async function handleDeleteTournament() {
         }
     } catch (error) {
         console.error('Erreur suppression tournoi:', error);
-        
-        // Gestion spécifique de l'erreur d'inscriptions
-        if (error.message && error.message.includes('inscriptions')) {
-            showNotification(
-                `❌ Impossible de supprimer ce tournoi.\n\n` +
-                `Ce tournoi a des joueurs inscrits. Vous devez d'abord annuler toutes les inscriptions avant de pouvoir le supprimer.\n\n` +
-                `Nombre de joueurs inscrits : ${playerCount}`,
-                'error'
-            );
-        } else {
-            showNotification(error.message || 'Erreur lors de la suppression du tournoi', 'error');
-        }
+        showNotification(error.message || 'Erreur lors de la suppression du tournoi', 'error');
     } finally {
         showLoading(false);
     }
@@ -866,15 +912,24 @@ function openEditTournamentModal(tournamentId) {
     document.getElementById('editTournamentMaxPlayers').value = tournament.maxPlayers;
     document.getElementById('editTournamentDescription').value = tournament.description || '';
     
-    // Gérer le bouton de suppression en fonction des inscriptions
+    // Remplir la date limite d'inscription si elle existe
+    if (tournament.registrationDeadline) {
+        const deadlineDate = new Date(tournament.registrationDeadline);
+        // Format datetime-local: YYYY-MM-DDTHH:MM
+        const deadlineStr = deadlineDate.toISOString().slice(0, 16);
+        document.getElementById('editTournamentRegistrationDeadline').value = deadlineStr;
+    } else {
+        document.getElementById('editTournamentRegistrationDeadline').value = '';
+    }
+    
+    // Gérer le bouton de suppression - toujours actif, avec avertissement si inscriptions
     const deleteBtn = document.getElementById('deleteTournamentBtn');
     if (deleteBtn) {
+        deleteBtn.disabled = false;
         if (playerCount > 0) {
-            deleteBtn.disabled = true;
-            deleteBtn.title = `Impossible de supprimer : ${playerCount} joueur${playerCount > 1 ? 's' : ''} inscrit${playerCount > 1 ? 's' : ''}`;
-            deleteBtn.innerHTML = '<i class="fas fa-lock"></i><span>Suppression bloquée (' + playerCount + ' inscrit' + (playerCount > 1 ? 's' : '') + ')</span>';
+            deleteBtn.title = `Supprimer ce tournoi (${playerCount} inscription${playerCount > 1 ? 's' : ''} sera${playerCount > 1 ? 'nt' : ''} annulée${playerCount > 1 ? 's' : ''})`;
+            deleteBtn.innerHTML = '<i class="fas fa-trash"></i><span>Supprimer (' + playerCount + ' inscrit' + (playerCount > 1 ? 's' : '') + ')</span>';
         } else {
-            deleteBtn.disabled = false;
             deleteBtn.title = 'Supprimer ce tournoi définitivement';
             deleteBtn.innerHTML = '<i class="fas fa-trash"></i><span>Supprimer</span>';
         }
@@ -885,9 +940,43 @@ function openEditTournamentModal(tournamentId) {
 
 function showTournamentDetails(tournamentId) {
     const tournament = tournaments.find(t => (t._id || t.id) === tournamentId);
-    if (tournament) {
-        showNotification('Détails de ' + tournament.name + ' - ' + tournament.game, 'info');
+    if (!tournament) {
+        showNotification('Tournoi non trouvé', 'error');
+        return;
     }
+
+    // Remplir les détails du tournoi dans la modale
+    document.getElementById('detailsTournamentName').textContent = tournament.name;
+    document.getElementById('detailsTournamentGame').textContent = tournament.game;
+    
+    const dateStr = formatDate(tournament.date) + ' à ' + formatTime(tournament.date);
+    document.getElementById('detailsTournamentDate').textContent = dateStr;
+    
+    const playerCount = tournament.currentPlayers || 0;
+    document.getElementById('detailsTournamentPlayers').textContent = `${playerCount}/${tournament.maxPlayers} joueurs`;
+    
+    const price = tournament.entryFee ? tournament.entryFee.toFixed(2) + ' €' : 'Gratuit';
+    document.getElementById('detailsTournamentPrice').textContent = price;
+    
+    const status = getTournamentStatusText(tournament);
+    document.getElementById('detailsTournamentStatus').textContent = status;
+    
+    document.getElementById('detailsTournamentDescription').textContent = tournament.description || 'Aucune description disponible';
+    
+    // Configurer le bouton d'inscription
+    const registerBtn = document.getElementById('detailsRegisterBtn');
+    if (currentUser && status === 'À venir') {
+        registerBtn.style.display = 'inline-flex';
+        registerBtn.onclick = () => {
+            closeModal('tournamentDetailsModal');
+            registerForTournament(tournamentId);
+        };
+    } else {
+        registerBtn.style.display = 'none';
+    }
+    
+    // Ouvrir la modale
+    openModal('tournamentDetailsModal');
 }
 
 function renderCalendar() {
@@ -1176,14 +1265,97 @@ function showNotification(message, type, duration) {
     }, duration);
 }
 
-function showAdminPanel() {
-    navigateToSection('admin');
+function showConfirm(message, title = 'Confirmation') {
+    return new Promise((resolve) => {
+        const confirmModal = document.getElementById('confirmModal');
+        const confirmModalTitle = document.getElementById('confirmModalTitle');
+        const confirmModalMessage = document.getElementById('confirmModalMessage');
+        const confirmBtn = document.getElementById('confirmModalConfirm');
+        const cancelBtn = document.getElementById('confirmModalCancel');
+        
+        if (!confirmModal) {
+            // Fallback vers confirm natif si la modale n'existe pas
+            resolve(confirm(message));
+            return;
+        }
+        
+        // Configurer la modale
+        confirmModalTitle.textContent = title;
+        confirmModalMessage.textContent = message;
+        
+        // Afficher la modale
+        confirmModal.style.display = 'block';
+        setTimeout(() => {
+            confirmModal.classList.add('active');
+        }, 10);
+        
+        // Gestionnaire pour la confirmation
+        const handleConfirm = () => {
+            cleanup();
+            resolve(true);
+        };
+        
+        // Gestionnaire pour l'annulation
+        const handleCancel = () => {
+            cleanup();
+            resolve(false);
+        };
+        
+        // Gestionnaire pour la touche Escape
+        const handleEscape = (e) => {
+            if (e.key === 'Escape') {
+                handleCancel();
+            }
+        };
+        
+        // Fonction de nettoyage
+        const cleanup = () => {
+            confirmModal.classList.remove('active');
+            setTimeout(() => {
+                confirmModal.style.display = 'none';
+            }, 300);
+            
+            confirmBtn.removeEventListener('click', handleConfirm);
+            cancelBtn.removeEventListener('click', handleCancel);
+            document.removeEventListener('keydown', handleEscape);
+        };
+        
+        // Ajouter les event listeners
+        confirmBtn.addEventListener('click', handleConfirm);
+        cancelBtn.addEventListener('click', handleCancel);
+        document.addEventListener('keydown', handleEscape);
+        
+        // Clic sur l'overlay pour annuler
+        const overlay = confirmModal.querySelector('.modal-overlay');
+        if (overlay) {
+            overlay.addEventListener('click', handleCancel, { once: true });
+        }
+    });
 }
 
 function toggleMobileMenu() {
     const navMenu = document.querySelector('.nav-menu');
     if (navMenu) {
         navMenu.classList.toggle('mobile-active');
+    }
+}
+
+function switchAdminTab(tabName) {
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    document.querySelectorAll('.tab-content').forEach(content => {
+        content.classList.remove('active');
+    });
+    
+    const activeBtn = document.querySelector(`.tab-btn[data-tab="${tabName}"]`);
+    if (activeBtn) {
+        activeBtn.classList.add('active');
+    }
+    
+    const activeContent = document.getElementById(`admin${tabName.charAt(0).toUpperCase() + tabName.slice(1)}`);
+    if (activeContent) {
+        activeContent.classList.add('active');
     }
 }
 
@@ -1221,9 +1393,6 @@ function initEventListeners() {
                 break;
             case 'logout':
                 logout();
-                break;
-            case 'admin':
-                showAdminPanel();
                 break;
             case 'theme':
                 toggleTheme();
@@ -1287,10 +1456,37 @@ function initEventListeners() {
     if (deleteTournamentBtn) {
         deleteTournamentBtn.addEventListener('click', handleDeleteTournament);
     }
+
+    const tournamentSearch = document.getElementById('tournamentSearch');
+    if (tournamentSearch) {
+        tournamentSearch.addEventListener('input', function() {
+            if (getCurrentSection() === 'tournaments') {
+                applyTournamentFilters();
+            }
+        });
+    }
+
+    const filterButtons = document.querySelectorAll('.filter-btn');
+    filterButtons.forEach(btn => {
+        btn.addEventListener('click', function() {
+            filterButtons.forEach(b => b.classList.remove('active'));
+            this.classList.add('active');
+            if (getCurrentSection() === 'tournaments') {
+                applyTournamentFilters();
+            }
+        });
+    });
+
+    const tabButtons = document.querySelectorAll('.tab-btn');
+    tabButtons.forEach(btn => {
+        btn.addEventListener('click', function() {
+            const tabName = this.dataset.tab;
+            switchAdminTab(tabName);
+        });
+    });
 }
 
 window.toggleTheme = toggleTheme;
-window.navigateToSection = navigateToSection;
 window.openModal = openModal;
 window.closeModal = closeModal;
 window.handleLogin = handleLogin;
@@ -1304,4 +1500,7 @@ window.handleEditTournament = handleEditTournament;
 window.handleDeleteTournament = handleDeleteTournament;
 window.openEditTournamentModal = openEditTournamentModal;
 window.showNotification = showNotification;
+window.showConfirm = showConfirm;
 window.toggleMobileMenu = toggleMobileMenu;
+window.switchAdminTab = switchAdminTab;
+window.applyTournamentFilters = applyTournamentFilters;

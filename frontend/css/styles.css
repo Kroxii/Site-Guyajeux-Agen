@@ -1220,48 +1220,121 @@ textarea {
 }
 
 .admin-list {
-    display: flex;
-    flex-direction: column;
-    gap: var(--spacing-md);
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: var(--spacing-sm);
 }
 
 .admin-tournament-item {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: var(--spacing-lg);
+    display: grid;
+    grid-template-rows: auto 1fr auto;
+    padding: var(--spacing-sm);
     background: var(--surface);
     border: 1px solid var(--surface-border);
-    border-radius: var(--radius-md);
+    border-radius: var(--radius);
     transition: all 0.2s ease;
+    min-height: 120px;
 }
 
 .admin-tournament-item:hover {
     border-color: var(--primary);
     box-shadow: var(--shadow-md);
+    transform: translateY(-2px);
 }
 
 .admin-tournament-item .tournament-info {
-    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xs);
+    padding-bottom: var(--spacing-sm);
 }
 
 .admin-tournament-item .tournament-info h4 {
-    margin: 0 0 var(--spacing-xs) 0;
+    margin: 0;
     color: var(--text-primary);
-    font-size: 1.1rem;
+    font-size: 0.85rem;
     font-weight: 600;
+    line-height: 1.2;
 }
 
 .admin-tournament-item .tournament-info p {
     margin: 0;
     color: var(--text-secondary);
-    font-size: 0.9rem;
+    font-size: 0.75rem;
+    line-height: 1.3;
 }
 
 .admin-tournament-item .admin-actions {
     display: flex;
-    gap: var(--spacing-sm);
-    margin-bottom: 0;
+    gap: var(--spacing-xs);
+    margin-top: auto;
+    padding-top: var(--spacing-sm);
+    border-top: 1px solid var(--surface-border);
+}
+
+.admin-user-item {
+    display: grid;
+    grid-template-rows: auto 1fr;
+    padding: var(--spacing-sm);
+    background: var(--surface);
+    border: 1px solid var(--surface-border);
+    border-radius: var(--radius);
+    transition: all 0.2s ease;
+    min-height: 120px;
+}
+
+.admin-user-item:hover {
+    border-color: var(--primary);
+    box-shadow: var(--shadow-md);
+    transform: translateY(-2px);
+}
+
+.admin-user-item .user-info {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xs);
+}
+
+.admin-user-item .user-info h4 {
+    margin: 0;
+    color: var(--text-primary);
+    font-size: 0.85rem;
+    font-weight: 600;
+    line-height: 1.2;
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+}
+
+.admin-user-item .user-info p {
+    margin: 0;
+    color: var(--text-secondary);
+    font-size: 0.75rem;
+    line-height: 1.3;
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+}
+
+.admin-user-item .user-info p i {
+    width: 14px;
+    color: var(--text-tertiary);
+}
+
+.badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 8px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    border-radius: var(--radius-sm);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.badge-admin {
+    background: var(--primary);
+    color: white;
 }
 
 .notifications {
@@ -2043,6 +2116,131 @@ tr:hover {
 @keyframes spin {
     0% { transform: rotate(0deg); }
     100% { transform: rotate(360deg); }
+}
+
+/* Modale de confirmation personnalisée */
+.confirm-modal-content {
+    max-width: 400px;
+    margin: auto;
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    animation: confirmModalSlideIn 0.3s ease;
+}
+
+.confirm-modal-header {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-lg);
+    border-bottom: 1px solid var(--surface-border);
+}
+
+.confirm-icon {
+    font-size: 1.5rem;
+    color: var(--warning);
+}
+
+.confirm-modal-header h3 {
+    margin: 0;
+    font-size: var(--font-size-lg);
+    color: var(--text-primary);
+}
+
+.confirm-modal-body {
+    padding: var(--spacing-lg);
+}
+
+.confirm-modal-body p {
+    margin: 0;
+    color: var(--text-secondary);
+    font-size: var(--font-size-sm);
+    line-height: 1.6;
+    white-space: pre-line;
+}
+
+.confirm-modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-md) var(--spacing-lg);
+    border-top: 1px solid var(--surface-border);
+    background: var(--surface-secondary);
+}
+
+@keyframes confirmModalSlideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-20px) scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+/* Modale de détails du tournoi */
+.tournament-details-container {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-lg);
+}
+
+.details-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-bottom: var(--spacing-md);
+    border-bottom: 2px solid var(--surface-border);
+}
+
+.details-header h3 {
+    margin: 0;
+    font-size: var(--font-size-2xl);
+    color: var(--text-primary);
+}
+
+.details-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--spacing-lg);
+}
+
+.details-section {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xs);
+}
+
+.details-section h4 {
+    margin: 0;
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+    color: var(--text-tertiary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+}
+
+.details-section h4 i {
+    color: var(--primary);
+}
+
+.details-section p {
+    margin: 0;
+    font-size: var(--font-size-lg);
+    color: var(--text-primary);
+    font-weight: 500;
+}
+
+#detailsTournamentDescription {
+    font-size: var(--font-size-base);
+    font-weight: normal;
+    line-height: 1.6;
+    color: var(--text-secondary);
 }
 
 @media print {

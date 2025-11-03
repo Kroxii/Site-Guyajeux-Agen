@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Guyajeux Agen - Club de Jeux</title>
-    <link rel="stylesheet" href="css/styles.css">
+    <title>Administration - Guyajeux Agen</title>
+    <link rel="stylesheet" href="/css/styles.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 </head>
@@ -18,7 +18,7 @@
                     <span class="brand-text">Guyajeux Agen</span>
                 </div>
                 <div class="nav-menu" id="navMenu">
-                    <a href="/" class="nav-link active">
+                    <a href="/" class="nav-link">
                         <i class="fas fa-home"></i>
                         <span>Accueil</span>
                     </a>
@@ -74,59 +74,43 @@
 
     <!-- Contenu Principal -->
     <main class="main">
-        <!-- Section Accueil -->
-        <section id="home" class="section active">
+        <!-- Section Admin -->
+        <section id="admin" class="section active">
             <div class="container">
-                <div class="hero">
-                    <div class="hero-content">
-                        <h1 class="hero-title">Bienvenue chez Guyajeux Agen</h1>
-                        <p class="hero-subtitle">Rejoignez notre communauté passionnée de jeux de société et participez à nos tournois exclusifs !</p>
-                        <div class="hero-actions">
-                            <a href="/pages/calendrier.html" class="btn btn-ghost btn-lg">
-                                <i class="fas fa-calendar-alt"></i>
-                                <span>Voir les événements</span>
-                            </a>
-                        </div>
-                    </div>
-                    <div class="hero-image">
-                        <i class="fas fa-dice-d20"></i>
-                    </div>
-                </div>
-                
-                <div class="stats-grid">
-                    <div class="stat-card">
-                        <div class="stat-icon">
-                            <i class="fas fa-users"></i>
-                        </div>
-                        <div class="stat-content">
-                            <h3 class="stat-number" id="totalMembers">0</h3>
-                            <p class="stat-label">Membres inscrits</p>
-                        </div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-icon">
-                            <i class="fas fa-trophy"></i>
-                        </div>
-                        <div class="stat-content">
-                            <h3 class="stat-number" id="totalTournaments">0</h3>
-                            <p class="stat-label">Tournois organisés</p>
-                        </div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-icon">
-                            <i class="fas fa-gamepad"></i>
-                        </div>
-                        <div class="stat-content">
-                            <h3 class="stat-number" id="totalGames">0</h3>
-                            <p class="stat-label">Jeux disponibles</p>
-                        </div>
-                    </div>
+                <div class="page-header">
+                    <h1 class="page-title">Administration</h1>
+                    <p class="page-subtitle">Gestion des tournois et événements</p>
                 </div>
 
-                <div class="upcoming-section">
-                    <h2 class="section-title">Prochains événements</h2>
-                    <div id="upcomingTournaments" class="tournaments-grid">
-                        <!-- Les tournois seront chargés dynamiquement -->
+                <div class="admin-tabs">
+                    <button class="tab-btn active" data-tab="tournaments">Tournois</button>
+                    <button class="tab-btn" data-tab="users">Utilisateurs</button>
+                    <button class="tab-btn" data-tab="settings">Paramètres</button>
+                </div>
+
+                <div class="admin-content">
+                    <div id="adminTournaments" class="tab-content active">
+                        <div class="admin-actions">
+                            <button class="btn btn-primary" data-action="create-tournament">
+                                <i class="fas fa-plus"></i>
+                                <span>Nouveau tournoi</span>
+                            </button>
+                        </div>
+                        <div id="adminTournamentsList" class="admin-list">
+                            <!-- Liste des tournois pour admin -->
+                        </div>
+                    </div>
+                    
+                    <div id="adminUsers" class="tab-content">
+                        <div id="adminUsersList" class="admin-list">
+                            <!-- Liste des utilisateurs -->
+                        </div>
+                    </div>
+                    
+                    <div id="adminSettings" class="tab-content">
+                        <div class="settings-form">
+                            <!-- Paramètres du site -->
+                        </div>
                     </div>
                 </div>
             </div>
@@ -244,6 +228,144 @@
         </div>
     </div>
 
+    <!-- Modal de création de tournoi (admin) -->
+    <div id="createTournamentModal" class="modal">
+        <div class="modal-overlay" data-close-modal="createTournamentModal"></div>
+        <div class="modal-content modal-large">
+            <div class="modal-header">
+                <h2>Créer un nouveau tournoi</h2>
+                <button class="modal-close" data-close-modal="createTournamentModal">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="createTournamentForm">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="tournamentName">Nom du tournoi</label>
+                            <input type="text" id="tournamentName" name="name" required placeholder="Ex: Tournoi Magic du samedi">
+                        </div>
+                        <div class="form-group">
+                            <label for="tournamentGame">Jeu</label>
+                            <input type="text" id="tournamentGame" name="game" required placeholder="Ex: Magic: The Gathering">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="tournamentDate">Date</label>
+                            <input type="date" id="tournamentDate" name="date" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="tournamentTime">Heure</label>
+                            <input type="time" id="tournamentTime" name="time" required>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="tournamentRegistrationDeadline">Date limite d'inscription (optionnelle)</label>
+                            <input type="datetime-local" id="tournamentRegistrationDeadline" name="registrationDeadline" placeholder="Si vide, pas de limite">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="tournamentPrice">Prix (€)</label>
+                            <input type="number" id="tournamentPrice" name="price" required min="0" step="0.01" placeholder="5.00">
+                        </div>
+                        <div class="form-group">
+                            <label for="tournamentMaxPlayers">Nombre maximum de joueurs</label>
+                            <input type="number" id="tournamentMaxPlayers" name="maxPlayers" required min="4" max="64" placeholder="16">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="tournamentDescription">Description</label>
+                        <textarea id="tournamentDescription" name="description" rows="4" placeholder="Décrivez le tournoi, les règles, les prix..."></textarea>
+                    </div>
+                    <div class="form-actions">
+                        <button type="button" class="btn btn-ghost" data-close-modal="createTournamentModal">
+                            Annuler
+                        </button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-plus"></i>
+                            <span>Créer le tournoi</span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal d'édition de tournoi -->
+    <div id="editTournamentModal" class="modal">
+        <div class="modal-overlay" data-close-modal="editTournamentModal"></div>
+        <div class="modal-content modal-large">
+            <div class="modal-header">
+                <h2>Modifier le tournoi</h2>
+                <button class="modal-close" data-close-modal="editTournamentModal">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="editTournamentForm">
+                    <input type="hidden" id="editTournamentId" name="id">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="editTournamentName">Nom du tournoi</label>
+                            <input type="text" id="editTournamentName" name="name" required placeholder="Ex: Tournoi Magic du samedi">
+                        </div>
+                        <div class="form-group">
+                            <label for="editTournamentGame">Jeu</label>
+                            <input type="text" id="editTournamentGame" name="game" required placeholder="Ex: Magic: The Gathering">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="editTournamentDate">Date</label>
+                            <input type="date" id="editTournamentDate" name="date" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="editTournamentTime">Heure</label>
+                            <input type="time" id="editTournamentTime" name="time" required>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="editTournamentRegistrationDeadline">Date limite d'inscription (optionnelle)</label>
+                            <input type="datetime-local" id="editTournamentRegistrationDeadline" name="registrationDeadline" placeholder="Si vide, pas de limite">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="editTournamentPrice">Prix (€)</label>
+                            <input type="number" id="editTournamentPrice" name="price" required min="0" step="0.01" placeholder="5.00">
+                        </div>
+                        <div class="form-group">
+                            <label for="editTournamentMaxPlayers">Nombre maximum de joueurs</label>
+                            <input type="number" id="editTournamentMaxPlayers" name="maxPlayers" required min="4" max="64" placeholder="16">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="editTournamentDescription">Description</label>
+                        <textarea id="editTournamentDescription" name="description" rows="4" placeholder="Décrivez le tournoi, les règles, les prix..."></textarea>
+                    </div>
+                    <div class="form-actions">
+                        <button type="button" class="btn btn-danger" id="deleteTournamentBtn">
+                            <i class="fas fa-trash"></i>
+                            <span>Supprimer</span>
+                        </button>
+                        <div style="flex: 1;"></div>
+                        <button type="button" class="btn btn-ghost" data-close-modal="editTournamentModal">
+                            Annuler
+                        </button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save"></i>
+                            <span>Enregistrer</span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
     <!-- Messages de notification -->
     <div id="notifications" class="notifications"></div>
 
@@ -279,68 +401,8 @@
         </div>
     </div>
 
-    <!-- Modale Détails du Tournoi -->
-    <div id="tournamentDetailsModal" class="modal">
-        <div class="modal-overlay" data-close-modal="tournamentDetailsModal"></div>
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2 class="modal-title">Détails du tournoi</h2>
-                <button class="modal-close" data-close-modal="tournamentDetailsModal">
-                    <i class="fas fa-times"></i>
-                </button>
-            </div>
-            <div class="modal-body">
-                <div class="tournament-details-container">
-                    <div class="details-header">
-                        <h3 id="detailsTournamentName"></h3>
-                        <span id="detailsTournamentStatus" class="tournament-status"></span>
-                    </div>
-                    
-                    <div class="details-section">
-                        <h4><i class="fas fa-gamepad"></i> Jeu</h4>
-                        <p id="detailsTournamentGame"></p>
-                    </div>
-                    
-                    <div class="details-row">
-                        <div class="details-section">
-                            <h4><i class="fas fa-calendar"></i> Date</h4>
-                            <p id="detailsTournamentDate"></p>
-                        </div>
-                    </div>
-                    
-                    <div class="details-row">
-                        <div class="details-section">
-                            <h4><i class="fas fa-users"></i> Joueurs</h4>
-                            <p id="detailsTournamentPlayers"></p>
-                        </div>
-                        <div class="details-section">
-                            <h4><i class="fas fa-euro-sign"></i> Prix d'entrée</h4>
-                            <p id="detailsTournamentPrice"></p>
-                        </div>
-                    </div>
-                    
-                    <div class="details-section" id="detailsDescriptionSection">
-                        <h4><i class="fas fa-info-circle"></i> Description</h4>
-                        <p id="detailsTournamentDescription"></p>
-                    </div>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-ghost" data-close-modal="tournamentDetailsModal">
-                    <i class="fas fa-times"></i>
-                    <span>Fermer</span>
-                </button>
-                <button type="button" class="btn btn-primary" id="detailsRegisterBtn" style="display: none;">
-                    <i class="fas fa-plus"></i>
-                    <span>S'inscrire</span>
-                </button>
-            </div>
-        </div>
-    </div>
-
     <!-- Scripts -->
-    <script src="js/api.js"></script>
-    <script src="js/app.js"></script>
+    <script src="/js/api.js"></script>
+    <script src="/js/app.js"></script>
 </body>
 </html>
-

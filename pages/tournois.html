@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Guyajeux Agen - Club de Jeux</title>
-    <link rel="stylesheet" href="css/styles.css">
+    <title>Tournois - Guyajeux Agen</title>
+    <link rel="stylesheet" href="/css/styles.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 </head>
@@ -18,7 +18,7 @@
                     <span class="brand-text">Guyajeux Agen</span>
                 </div>
                 <div class="nav-menu" id="navMenu">
-                    <a href="/" class="nav-link active">
+                    <a href="/" class="nav-link">
                         <i class="fas fa-home"></i>
                         <span>Accueil</span>
                     </a>
@@ -26,7 +26,7 @@
                         <i class="fas fa-calendar-alt"></i>
                         <span>Calendrier</span>
                     </a>
-                    <a href="/pages/tournois.html" class="nav-link">
+                    <a href="/pages/tournois.html" class="nav-link active">
                         <i class="fas fa-trophy"></i>
                         <span>Tournois</span>
                     </a>
@@ -74,59 +74,35 @@
 
     <!-- Contenu Principal -->
     <main class="main">
-        <!-- Section Accueil -->
-        <section id="home" class="section active">
+        <!-- Section Tournois -->
+        <section id="tournaments" class="section active">
             <div class="container">
-                <div class="hero">
-                    <div class="hero-content">
-                        <h1 class="hero-title">Bienvenue chez Guyajeux Agen</h1>
-                        <p class="hero-subtitle">Rejoignez notre communauté passionnée de jeux de société et participez à nos tournois exclusifs !</p>
-                        <div class="hero-actions">
-                            <a href="/pages/calendrier.html" class="btn btn-ghost btn-lg">
-                                <i class="fas fa-calendar-alt"></i>
-                                <span>Voir les événements</span>
-                            </a>
-                        </div>
-                    </div>
-                    <div class="hero-image">
-                        <i class="fas fa-dice-d20"></i>
-                    </div>
+                <div class="page-header">
+                    <h1 class="page-title">Tournois disponibles</h1>
+                    <p class="page-subtitle">Participez aux tournois et montrez vos compétences !</p>
                 </div>
-                
-                <div class="stats-grid">
-                    <div class="stat-card">
-                        <div class="stat-icon">
-                            <i class="fas fa-users"></i>
-                        </div>
-                        <div class="stat-content">
-                            <h3 class="stat-number" id="totalMembers">0</h3>
-                            <p class="stat-label">Membres inscrits</p>
-                        </div>
+
+                <div class="tournaments-filters">
+                    <div class="filter-group">
+                        <button class="filter-btn active" data-filter="all">Tous</button>
+                        <button class="filter-btn" data-filter="upcoming">À venir</button>
+                        <button class="filter-btn" data-filter="ongoing">En cours</button>
+                        <button class="filter-btn" data-filter="finished">Terminés</button>
                     </div>
-                    <div class="stat-card">
-                        <div class="stat-icon">
-                            <i class="fas fa-trophy"></i>
-                        </div>
-                        <div class="stat-content">
-                            <h3 class="stat-number" id="totalTournaments">0</h3>
-                            <p class="stat-label">Tournois organisés</p>
-                        </div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-icon">
-                            <i class="fas fa-gamepad"></i>
-                        </div>
-                        <div class="stat-content">
-                            <h3 class="stat-number" id="totalGames">0</h3>
-                            <p class="stat-label">Jeux disponibles</p>
-                        </div>
+                    <div class="search-group">
+                        <input type="text" id="tournamentSearch" placeholder="Rechercher un tournoi..." class="search-input">
+                        <i class="fas fa-search"></i>
                     </div>
                 </div>
 
-                <div class="upcoming-section">
-                    <h2 class="section-title">Prochains événements</h2>
-                    <div id="upcomingTournaments" class="tournaments-grid">
-                        <!-- Les tournois seront chargés dynamiquement -->
+                <div id="tournamentsGrid" class="tournaments-grid">
+                    <!-- Les tournois seront chargés dynamiquement -->
+                </div>
+
+                <div id="myRegistrations" class="my-registrations" style="display: none;">
+                    <h2 class="section-title">Mes inscriptions</h2>
+                    <div id="myRegistrationsList" class="registrations-list">
+                        <!-- Les inscriptions de l'utilisateur seront affichées ici -->
                     </div>
                 </div>
             </div>
@@ -244,6 +220,74 @@
         </div>
     </div>
 
+    <!-- Modale Détails du Tournoi -->
+    <div id="tournamentDetailsModal" class="modal">
+        <div class="modal-overlay" data-close-modal="tournamentDetailsModal"></div>
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">Détails du tournoi</h2>
+                <button class="modal-close" data-close-modal="tournamentDetailsModal">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="tournament-details-container">
+                    <div class="details-header">
+                        <h3 id="detailsTournamentName"></h3>
+                        <span id="detailsTournamentStatus" class="tournament-status"></span>
+                    </div>
+                    
+                    <div class="details-section">
+                        <h4><i class="fas fa-gamepad"></i> Jeu</h4>
+                        <p id="detailsTournamentGame"></p>
+                    </div>
+                    
+                    <div class="details-row">
+                        <div class="details-section">
+                            <h4><i class="fas fa-calendar"></i> Date</h4>
+                            <p id="detailsTournamentDate"></p>
+                        </div>
+                        <div class="details-section">
+                            <h4><i class="fas fa-clock"></i> Heure</h4>
+                            <p id="detailsTournamentTime"></p>
+                        </div>
+                    </div>
+                    
+                    <div class="details-row">
+                        <div class="details-section">
+                            <h4><i class="fas fa-users"></i> Joueurs</h4>
+                            <p id="detailsTournamentPlayers"></p>
+                        </div>
+                        <div class="details-section">
+                            <h4><i class="fas fa-euro-sign"></i> Prix d'entrée</h4>
+                            <p id="detailsTournamentPrice"></p>
+                        </div>
+                    </div>
+                    
+                    <div class="details-section" id="detailsRegistrationDeadlineSection" style="display: none;">
+                        <h4><i class="fas fa-hourglass-end"></i> Date limite d'inscription</h4>
+                        <p id="detailsRegistrationDeadline"></p>
+                    </div>
+                    
+                    <div class="details-section" id="detailsDescriptionSection">
+                        <h4><i class="fas fa-info-circle"></i> Description</h4>
+                        <p id="detailsTournamentDescription"></p>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-ghost" data-close-modal="tournamentDetailsModal">
+                    <i class="fas fa-times"></i>
+                    <span>Fermer</span>
+                </button>
+                <button type="button" class="btn btn-primary" id="detailsRegisterBtn" style="display: none;">
+                    <i class="fas fa-plus"></i>
+                    <span>S'inscrire</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- Messages de notification -->
     <div id="notifications" class="notifications"></div>
 
@@ -279,68 +323,8 @@
         </div>
     </div>
 
-    <!-- Modale Détails du Tournoi -->
-    <div id="tournamentDetailsModal" class="modal">
-        <div class="modal-overlay" data-close-modal="tournamentDetailsModal"></div>
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2 class="modal-title">Détails du tournoi</h2>
-                <button class="modal-close" data-close-modal="tournamentDetailsModal">
-                    <i class="fas fa-times"></i>
-                </button>
-            </div>
-            <div class="modal-body">
-                <div class="tournament-details-container">
-                    <div class="details-header">
-                        <h3 id="detailsTournamentName"></h3>
-                        <span id="detailsTournamentStatus" class="tournament-status"></span>
-                    </div>
-                    
-                    <div class="details-section">
-                        <h4><i class="fas fa-gamepad"></i> Jeu</h4>
-                        <p id="detailsTournamentGame"></p>
-                    </div>
-                    
-                    <div class="details-row">
-                        <div class="details-section">
-                            <h4><i class="fas fa-calendar"></i> Date</h4>
-                            <p id="detailsTournamentDate"></p>
-                        </div>
-                    </div>
-                    
-                    <div class="details-row">
-                        <div class="details-section">
-                            <h4><i class="fas fa-users"></i> Joueurs</h4>
-                            <p id="detailsTournamentPlayers"></p>
-                        </div>
-                        <div class="details-section">
-                            <h4><i class="fas fa-euro-sign"></i> Prix d'entrée</h4>
-                            <p id="detailsTournamentPrice"></p>
-                        </div>
-                    </div>
-                    
-                    <div class="details-section" id="detailsDescriptionSection">
-                        <h4><i class="fas fa-info-circle"></i> Description</h4>
-                        <p id="detailsTournamentDescription"></p>
-                    </div>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-ghost" data-close-modal="tournamentDetailsModal">
-                    <i class="fas fa-times"></i>
-                    <span>Fermer</span>
-                </button>
-                <button type="button" class="btn btn-primary" id="detailsRegisterBtn" style="display: none;">
-                    <i class="fas fa-plus"></i>
-                    <span>S'inscrire</span>
-                </button>
-            </div>
-        </div>
-    </div>
-
     <!-- Scripts -->
-    <script src="js/api.js"></script>
-    <script src="js/app.js"></script>
+    <script src="/js/api.js"></script>
+    <script src="/js/app.js"></script>
 </body>
 </html>
-

@@ -78,7 +78,9 @@ router.post('/', auth, requireAdmin, async (req, res) => {
       description,
       date,
       maxPlayers,
-      game
+      game,
+      entryFee,
+      registrationDeadline
     } = req.body;
 
     // Validation
@@ -89,14 +91,26 @@ router.post('/', auth, requireAdmin, async (req, res) => {
       });
     }
 
-    const tournament = new Tournament({
+    const tournamentData = {
       name,
       description,
       date,
       maxPlayers,
       game,
       createdBy: req.user.id
-    });
+    };
+
+    // Ajouter entryFee seulement s'il est fourni
+    if (entryFee !== undefined && entryFee !== null) {
+      tournamentData.entryFee = entryFee;
+    }
+
+    // Ajouter registrationDeadline seulement s'il est fourni
+    if (registrationDeadline) {
+      tournamentData.registrationDeadline = registrationDeadline;
+    }
+
+    const tournament = new Tournament(tournamentData);
 
     await tournament.save();
 
@@ -134,7 +148,9 @@ router.put('/:id', auth, requireAdmin, async (req, res) => {
       date,
       maxPlayers,
       game,
-      status
+      status,
+      entryFee,
+      registrationDeadline
     } = req.body;
 
     // Mise à jour des champs fournis
@@ -144,6 +160,8 @@ router.put('/:id', auth, requireAdmin, async (req, res) => {
     if (maxPlayers !== undefined) tournament.maxPlayers = maxPlayers;
     if (game !== undefined) tournament.game = game;
     if (status !== undefined) tournament.status = status;
+    if (entryFee !== undefined) tournament.entryFee = entryFee;
+    if (registrationDeadline !== undefined) tournament.registrationDeadline = registrationDeadline;
 
     await tournament.save();
 

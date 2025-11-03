@@ -41,8 +41,12 @@ app.use(cookieParser());
 if (process.env.NODE_ENV === 'development') {
   app.use(morgan('dev'));
 }
+
 // Servir les fichiers statiques (frontend)
 app.use(express.static(path.join(__dirname, '../frontend')));
+// Servir les pages depuis le dossier pages
+app.use('/pages', express.static(path.join(__dirname, '../pages')));
+
 // Routes API
 app.use('/api/auth', authRoutes);
 app.use('/api/tournaments', tournamentRoutes);
