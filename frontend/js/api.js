@@ -1,11 +1,6 @@
 const API_BASE_URL = '/api';
-
-class ApiService {
-  constructor() {
-    this.baseURL = API_BASE_URL;
-  }
-  
-  async request(endpoint, method = 'GET', data = null) {
+ 
+  export async function apiGET(endpoint, method = 'GET', data = null) {
     const url = `${this.baseURL}${endpoint}`;
     const config = {
       method,
@@ -16,11 +11,12 @@ class ApiService {
     
     try {
       const response = await fetch(url, config);
-      
+      return response;
     }
     catch (error) {
       console.error('API request error:', error);
       throw error;
     }
   }
-}
+
+  // Ajouter bearer token

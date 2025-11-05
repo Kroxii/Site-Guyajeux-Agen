@@ -7,7 +7,6 @@ function getHomePath() {
     return '/';
 }
 
-// Fonction utilitaire pour obtenir la section actuelle basée sur la page
 function getCurrentSection() {
     const path = window.location.pathname;
     const fileName = path.substring(path.lastIndexOf('/') + 1) || 'index.html';
