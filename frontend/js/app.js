@@ -3,6 +3,55 @@ let tournaments = [];
 let api = null;
 let currentCalendarDate = new Date();
 
+// Fonctions utilitaires pour formater les dates
+function formatDate(dateString) {
+    const date = new Date(dateString);
+    const options = { year: 'numeric', month: 'long', day: 'numeric' };
+    return date.toLocaleDateString('fr-FR', options);
+}
+
+function formatTime(dateString) {
+    const date = new Date(dateString);
+    return date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+}
+
+// Fonctions utilitaires pour le statut des tournois
+function getTournamentStatus(tournament) {
+    const now = new Date();
+    const tournamentDate = new Date(tournament.date);
+    const currentPlayers = tournament.currentPlayers || 0;
+    
+    if (currentPlayers >= tournament.maxPlayers) {
+        return 'full';
+    } else if (tournamentDate < now) {
+        return 'past';
+    } else {
+        return 'open';
+    }
+}
+
+function getTournamentStatusText(tournament) {
+    const status = getTournamentStatus(tournament);
+    switch (status) {
+        case 'full':
+            return 'Complet';
+        case 'past':
+            return 'Terminé';
+        case 'open':
+            return 'Inscriptions ouvertes';
+        default:
+            return 'Ouvert';
+    }
+}
+
+// Fonction pour changer de mois dans le calendrier
+function changeMonth(direction) {
+    currentCalendarDate.setMonth(currentCalendarDate.getMonth() + direction);
+    if (getCurrentSection() === 'calendar') {
+        loadCalendarData();
+    }
+}
+
 function getHomePath() {
     return '/';
 }
@@ -138,16 +187,26 @@ function closeModal(modalId) {
 
 async function checkAuthentication() {
     try {
-        if (api) {
+        // Essayer de récupérer l'utilisateur sauvegardé
+        const savedUser = localStorage.getItem('currentUser');
+        
+        if (api && savedUser) {
             try {
-                const user = await api.getCurrentUser();
-                if (user) {
-                    currentUser = user;
+                // Vérifier si le cookie est toujours valide
+                const response = await api.getCurrentUser();
+                if (response && response.success && response.data) {
+                    currentUser = response.data.user;
+                    // Mettre à jour localStorage avec les données à jour
+                    localStorage.setItem('currentUser', JSON.stringify(currentUser));
                     updateAuthUI(true);
                     return true;
                 }
             } catch (error) {
                 console.warn('⚠️ Session invalide:', error.message);
+                // Cookie invalide, nettoyer
+                localStorage.removeItem('currentUser');
+                currentUser = null;
+                updateAuthUI(false);
             }
         }
     } catch (error) {
@@ -192,8 +251,9 @@ async function handleLogin(event) {
         const response = await api.login(email, password);
         
         if (response.success) {
-            // Le token et l'utilisateur sont déjà sauvegardés dans api.login()
+            // Sauvegarder l'utilisateur (le token est dans le cookie httpOnly)
             currentUser = response.data.user;
+            localStorage.setItem('currentUser', JSON.stringify(currentUser));
             
             updateAuthUI(true);
             closeModal('loginModal');
@@ -238,8 +298,9 @@ async function handleRegister(event) {
         const response = await api.register(userData.name, userData.email, userData.password);
         
         if (response.success) {
-            // Le token et l'utilisateur sont déjà sauvegardés dans api.register()
+            // Sauvegarder l'utilisateur (le token est dans le cookie httpOnly)
             currentUser = response.data.user;
+            localStorage.setItem('currentUser', JSON.stringify(currentUser));
             
             updateAuthUI(true);
             closeModal('registerModal');
@@ -264,6 +325,7 @@ async function logout() {
         console.error('Erreur logout:', error);
     } finally {
         currentUser = null;
+        localStorage.removeItem('currentUser');
         updateAuthUI(false);
         showNotification('Vous avez été déconnecté', 'info');
         window.location.href = getHomePath();
@@ -276,7 +338,8 @@ async function loadInitialData() {
     try {
         if (api) {
             // Charger les tournois
-            tournaments = await api.getTournaments() || [];
+            const response = await api.getTournaments();
+            tournaments = Array.isArray(response) ? response : [];
             
             // Charger les statistiques
             await loadStats();
@@ -364,23 +427,6 @@ async function loadHomeData() {
         updateStats();
     } catch (error) {
         console.error('Erreur chargement accueil:', error);
-    }
-}
-
-async function loadCalendarData() {
-    const calendarGrid = document.getElementById('calendarGrid');
-    const currentMonthElement = document.getElementById('currentMonth');
-    
-    try {
-        renderCalendar();
-    } catch (error) {
-        console.error('❌ Erreur dans renderCalendar():', error);
-    }
-    
-    try {
-        renderCalendarEvents();
-    } catch (error) {
-        console.error('❌ Erreur dans renderCalendarEvents():', error);
     }
 }
 
@@ -976,225 +1022,6 @@ function showTournamentDetails(tournamentId) {
     
     // Ouvrir la modale
     openModal('tournamentDetailsModal');
-}
-
-function renderCalendar() {
-    const calendarGrid = document.getElementById('calendarGrid');
-    const currentMonthElement = document.getElementById('currentMonth');
-    
-    if (!calendarGrid || !currentMonthElement) {
-        return;
-    }
-    
-    const currentMonth = currentCalendarDate.getMonth();
-    const currentYear = currentCalendarDate.getFullYear();
-    
-    currentMonthElement.textContent = currentCalendarDate.toLocaleDateString('fr-FR', { 
-        month: 'long', 
-        year: 'numeric' 
-    }).replace(/^\w/, c => c.toUpperCase());
-    
-    // Premier jour du mois
-    const firstDayOfMonth = new Date(currentYear, currentMonth, 1);
-    const lastDayOfMonth = new Date(currentYear, currentMonth + 1, 0);
-    
-    // Calculer le jour de la semaine du premier jour (0 = dimanche, 6 = samedi)
-    let firstDayOfWeek = firstDayOfMonth.getDay();
-    
-    // Calculer la date de début (premier dimanche à afficher)
-    const startDate = new Date(firstDayOfMonth);
-    startDate.setDate(startDate.getDate() - firstDayOfWeek);
-    
-    let calendarHTML = '';
-    
-    // En-têtes des jours
-    const dayHeaders = ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'];
-    dayHeaders.forEach(day => {
-        calendarHTML += '<div class="calendar-day-header">' + day.substring(0, 3) + '</div>';
-    });
-    
-    // Générer 6 semaines (42 jours)
-    let eventCount = 0;
-    for (let i = 0; i < 42; i++) {
-        const currentDate = new Date(startDate);
-        currentDate.setDate(startDate.getDate() + i);
-        
-        const isCurrentMonth = currentDate.getMonth() === currentMonth;
-        const isToday = currentDate.toDateString() === new Date().toDateString();
-        const dayTournaments = getTournamentsForDate(currentDate);
-        const hasEvent = dayTournaments.length > 0;
-        
-        if (hasEvent) eventCount++;
-        
-        let classes = 'calendar-day';
-        if (!isCurrentMonth) classes += ' other-month';
-        if (isToday) classes += ' today';
-        if (hasEvent) classes += ' has-event';
-        
-        let eventHTML = '';
-        if (hasEvent && isCurrentMonth) {
-            eventHTML = '<div class="event-indicator">' + dayTournaments.length + '</div>';
-        }
-        
-        calendarHTML += '<div class="' + classes + '" data-date="' + currentDate.toISOString() + '" title="' + currentDate.toLocaleDateString('fr-FR') + '">' +
-                '<span class="day-number">' + currentDate.getDate() + '</span>' +
-                eventHTML +
-            '</div>';
-    }
-    
-    calendarGrid.innerHTML = calendarHTML;
-    
-    // Ajouter les event listeners après le rendu
-    calendarGrid.querySelectorAll('.calendar-day').forEach(day => {
-        day.addEventListener('click', function() {
-            selectCalendarDay(this.dataset.date);
-        });
-    });
-    
-    // Mettre à jour la liste des événements du mois
-    renderCalendarEvents();
-}
-
-function getTournamentsForDate(date) {
-    const dateString = date.toDateString();
-    return tournaments.filter(tournament => 
-        new Date(tournament.date).toDateString() === dateString
-    );
-}
-
-function renderCalendarEvents() {
-    const eventsList = document.getElementById('calendarEventsList');
-    if (!eventsList) return;
-    
-    const currentMonth = currentCalendarDate.getMonth();
-    const currentYear = currentCalendarDate.getFullYear();
-    
-    // Filtrer les tournois du mois en cours
-    const monthTournaments = tournaments.filter(tournament => {
-        const tournamentDate = new Date(tournament.date);
-        return tournamentDate.getMonth() === currentMonth && 
-               tournamentDate.getFullYear() === currentYear;
-    }).sort((a, b) => new Date(a.date) - new Date(b.date));
-    
-    if (monthTournaments.length === 0) {
-        eventsList.innerHTML = '<p class="no-events">Aucun événement ce mois-ci</p>';
-        return;
-    }
-    
-    eventsList.innerHTML = monthTournaments.map(tournament => {
-        const tournamentId = tournament._id || tournament.id;
-        const tournamentDate = new Date(tournament.date);
-        const dayOfWeek = tournamentDate.toLocaleDateString('fr-FR', { weekday: 'long' });
-        const dayNum = tournamentDate.getDate();
-        const price = tournament.entryFee ? tournament.entryFee.toFixed(2) + ' €' : 'Gratuit';
-        
-        return '<div class="calendar-event-item" data-tournament-id="' + tournamentId + '">' +
-            '<div class="event-date">' +
-                '<span class="event-day">' + dayNum + '</span>' +
-                '<span class="event-weekday">' + dayOfWeek + '</span>' +
-            '</div>' +
-            '<div class="event-details">' +
-                '<h4 class="event-title">' + tournament.name + '</h4>' +
-                '<p class="event-game"><i class="fas fa-gamepad"></i> ' + tournament.game + '</p>' +
-                '<div class="event-info">' +
-                    '<span><i class="fas fa-clock"></i> ' + formatTime(tournament.date) + '</span>' +
-                    '<span><i class="fas fa-users"></i> ' + (tournament.currentPlayers || 0) + '/' + tournament.maxPlayers + '</span>' +
-                    '<span><i class="fas fa-euro-sign"></i> ' + price + '</span>' +
-                '</div>' +
-            '</div>' +
-            '<div class="event-actions">' +
-                '<button class="btn btn-sm btn-primary view-event-btn" data-tournament-id="' + tournamentId + '">' +
-                    '<i class="fas fa-eye"></i> Voir' +
-                '</button>' +
-            '</div>' +
-        '</div>';
-    }).join('');
-    
-    // Ajouter les event listeners
-    eventsList.querySelectorAll('.view-event-btn').forEach(btn => {
-        btn.addEventListener('click', function(e) {
-            e.stopPropagation();
-            showTournamentDetails(this.dataset.tournamentId);
-        });
-    });
-    
-    eventsList.querySelectorAll('.calendar-event-item').forEach(item => {
-        item.addEventListener('click', function() {
-            showTournamentDetails(this.dataset.tournamentId);
-        });
-    });
-}
-
-function changeMonth(offset) {
-    currentCalendarDate.setMonth(currentCalendarDate.getMonth() + offset);
-    renderCalendar();
-    renderCalendarEvents();
-}
-
-function hasCalendarEvent(date) {
-    const dateString = date.toDateString();
-    return tournaments.some(tournament => 
-        new Date(tournament.date).toDateString() === dateString
-    );
-}
-
-function selectCalendarDay(dateString) {
-    const date = new Date(dateString);
-    const dayEvents = getTournamentsForDate(date);
-    
-    if (dayEvents.length === 0) {
-        showNotification('Aucun événement ce jour', 'info');
-        return;
-    }
-    
-    // Créer un message avec tous les événements du jour
-    let message = `📅 ${dayEvents.length} événement${dayEvents.length > 1 ? 's' : ''} le ${date.toLocaleDateString('fr-FR')} :\n\n`;
-    
-    dayEvents.forEach((event, index) => {
-        message += `${index + 1}. ${event.name} (${event.game})\n`;
-        message += `   🕐 ${formatTime(event.date)}\n`;
-        message += `   👥 ${event.currentPlayers || 0}/${event.maxPlayers} joueurs\n\n`;
-    });
-    
-    showNotification(message, 'info');
-}
-
-function formatDate(dateString) {
-    return new Date(dateString).toLocaleDateString('fr-FR', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric'
-    });
-}
-
-function formatTime(dateString) {
-    return new Date(dateString).toLocaleTimeString('fr-FR', {
-        hour: '2-digit',
-        minute: '2-digit'
-    });
-}
-
-function getTournamentStatus(tournament) {
-    const now = new Date();
-    const tournamentDate = new Date(tournament.date);
-    
-    if (tournamentDate < now) {
-        return 'finished';
-    } else if (Math.abs(tournamentDate - now) < 24 * 60 * 60 * 1000) {
-        return 'ongoing';
-    } else {
-        return 'upcoming';
-    }
-}
-
-function getTournamentStatusText(tournament) {
-    const status = getTournamentStatus(tournament);
-    switch (status) {
-        case 'finished': return 'Terminé';
-        case 'ongoing': return 'En cours';
-        case 'upcoming': return 'À venir';
-        default: return 'À venir';
-    }
 }
 
 function updateStats() {
