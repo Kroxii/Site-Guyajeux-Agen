@@ -45,6 +45,8 @@ class ApiService {
         return this.request(endpoint, 'DELETE', null, includeAuth);
     }
 
+
+    // Méthodes d'authentification
     async login(email, password) {
         return this.post('/auth/login', { email, password }, false);
     }
@@ -56,8 +58,6 @@ class ApiService {
     async logout() {
         try {
             await this.post('/auth/logout', null, true);
-        } catch (error) {
-            console.error('Erreur lors de la déconnexion:', error);
         } finally {
             window.dispatchEvent(new CustomEvent('user-logout'));
         }
@@ -67,6 +67,7 @@ class ApiService {
         return this.get('/auth/me', true);
     }
 
+    // Méthodes pour les tournois
     async getTournaments(params = {}) {
     const queryString = new URLSearchParams(params).toString();
     const endpoint = `/tournaments${queryString ? `?${queryString}` : ''}`;
@@ -117,6 +118,8 @@ class ApiService {
     const response = await this.request('/users/me/stats');
     return response.data.stats;
   }
+
+  // Méthodes pour les utilisateurs
   async getUsers(params = {}) {
     const queryString = new URLSearchParams(params).toString();
     const endpoint = `/users${queryString ? `?${queryString}` : ''}`;
