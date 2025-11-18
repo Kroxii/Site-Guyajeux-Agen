@@ -78,7 +78,6 @@ app.use('*', (req, res) => {
 });
 // Middleware de gestion d'erreurs globale
 app.use((error, req, res, next) => {
-  console.error('Erreur serveur:', error);
   res.status(error.status || 500).json({
     success: false,
     message: error.message || 'Erreur interne du serveur',
@@ -95,7 +94,7 @@ const connectDB = async () => {
     // Créer un utilisateur admin par défaut s'il n'existe pas
     await createDefaultAdmin();
   } catch (error) {
-    console.error('Erreur de connexion MongoDB:', error);
+    // Erreur de connexion MongoDB
   }
 };
 // Créer un utilisateur admin par défaut
@@ -113,7 +112,7 @@ const createDefaultAdmin = async () => {
       await admin.save();
     }
   } catch (error) {
-    console.error('Erreur création admin:', error);
+    // Erreur création admin
   }
 };
 // Démarrage du serveur

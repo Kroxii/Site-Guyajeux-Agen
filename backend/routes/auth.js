@@ -61,7 +61,6 @@ router.post('/register', async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('❌ Erreur inscription:', error);
     res.status(500).json({
       success: false,
       message: 'Erreur lors de la création du compte'
@@ -129,7 +128,6 @@ router.post('/login', async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Erreur connexion:', error);
     res.status(500).json({
       success: false,
       message: 'Erreur lors de la connexion'
@@ -156,7 +154,6 @@ router.get('/me', auth, async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Erreur récupération profil:', error);
     res.status(500).json({
       success: false,
       message: 'Erreur lors de la récupération du profil'
@@ -187,7 +184,6 @@ router.put('/profile', auth, async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Erreur mise à jour profil:', error);
     res.status(500).json({
       success: false,
       message: 'Erreur lors de la mise à jour du profil'
@@ -229,7 +225,6 @@ router.post('/change-password', auth, async (req, res) => {
       message: 'Mot de passe changé avec succès'
     });
   } catch (error) {
-    console.error('Erreur changement mot de passe:', error);
     res.status(500).json({
       success: false,
       message: 'Erreur lors du changement de mot de passe'

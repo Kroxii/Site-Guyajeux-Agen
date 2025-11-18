@@ -15,7 +15,6 @@ router.get('/me/registrations', auth, async (req, res) => {
       data: { registrations }
     });
   } catch (error) {
-    console.error('Erreur récupération inscriptions utilisateur:', error);
     res.status(500).json({
       success: false,
       message: 'Erreur lors de la récupération de vos inscriptions'
@@ -49,7 +48,6 @@ router.get('/me/stats', auth, async (req, res) => {
       data: { stats }
     });
   } catch (error) {
-    console.error('Erreur récupération statistiques utilisateur:', error);
     res.status(500).json({
       success: false,
       message: 'Erreur lors de la récupération des statistiques'
@@ -89,7 +87,6 @@ router.get('/', auth, requireAdmin, async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Erreur récupération utilisateurs:', error);
     res.status(500).json({
       success: false,
       message: 'Erreur lors de la récupération des utilisateurs'
@@ -118,7 +115,6 @@ router.get('/:id', auth, requireAdmin, async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Erreur récupération utilisateur:', error);
     res.status(500).json({
       success: false,
       message: 'Erreur lors de la récupération de l\'utilisateur'
@@ -152,7 +148,6 @@ router.put('/:id/status', auth, requireAdmin, async (req, res) => {
       data: { user: { id: user._id, name: user.name, isActive: user.isActive } }
     });
   } catch (error) {
-    console.error('Erreur modification statut utilisateur:', error);
     res.status(500).json({
       success: false,
       message: 'Erreur lors de la modification du statut'
@@ -186,7 +181,6 @@ router.put('/:id/admin', auth, requireAdmin, async (req, res) => {
       data: { user: { id: user._id, name: user.name, isAdmin: user.isAdmin } }
     });
   } catch (error) {
-    console.error('Erreur modification droits admin:', error);
     res.status(500).json({
       success: false,
       message: 'Erreur lors de la modification des droits'
@@ -225,7 +219,6 @@ router.get('/stats/general', auth, requireAdmin, async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Erreur récupération statistiques générales:', error);
     res.status(500).json({
       success: false,
       message: 'Erreur lors de la récupération des statistiques'

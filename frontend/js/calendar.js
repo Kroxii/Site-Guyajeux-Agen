@@ -5,13 +5,13 @@ async function loadCalendarData() {
     try {
         renderCalendar();
     } catch (error) {
-        console.error('❌ Erreur dans renderCalendar():', error);
+        // Erreur dans renderCalendar()
     }
     
     try {
         renderCalendarEvents();
     } catch (error) {
-        console.error('❌ Erreur dans renderCalendarEvents():', error);
+        // Erreur dans renderCalendarEvents()
     }
 }
 
@@ -24,7 +24,6 @@ function renderCalendar() {
     }
     
     if (typeof currentCalendarDate === 'undefined') {
-        console.error('currentCalendarDate n\'est pas définie');
         return;
     }
     

@@ -33,7 +33,6 @@ router.get('/', async (req, res) => {
       data: tournaments
     });
   } catch (error) {
-    console.error('Erreur lors de la récupération des tournois:', error);
     res.status(500).json({
       success: false,
       message: 'Erreur serveur lors de la récupération des tournois'
@@ -60,7 +59,6 @@ router.get('/:id', async (req, res) => {
       data: tournament
     });
   } catch (error) {
-    console.error('Erreur lors de la récupération du tournoi:', error);
     res.status(500).json({
       success: false,
       message: 'Erreur serveur lors de la récupération du tournoi'
@@ -120,7 +118,6 @@ router.post('/', auth, requireAdmin, async (req, res) => {
       message: 'Tournoi créé avec succès'
     });
   } catch (error) {
-    console.error('Erreur lors de la création du tournoi:', error);
     res.status(500).json({
       success: false,
       message: 'Erreur serveur lors de la création du tournoi'
@@ -171,7 +168,6 @@ router.put('/:id', auth, requireAdmin, async (req, res) => {
       message: 'Tournoi mis à jour avec succès'
     });
   } catch (error) {
-    console.error('Erreur lors de la mise à jour du tournoi:', error);
     res.status(500).json({
       success: false,
       message: 'Erreur serveur lors de la mise à jour du tournoi'
@@ -204,7 +200,6 @@ router.delete('/:id', auth, requireAdmin, async (req, res) => {
       message: 'Tournoi supprimé avec succès'
     });
   } catch (error) {
-    console.error('Erreur lors de la suppression du tournoi:', error);
     res.status(500).json({
       success: false,
       message: 'Erreur serveur lors de la suppression du tournoi'
@@ -285,7 +280,6 @@ router.post('/:id/register', auth, async (req, res) => {
       message: 'Inscription réussie'
     });
   } catch (error) {
-    console.error('Erreur lors de l\'inscription au tournoi:', error);
     res.status(500).json({
       success: false,
       message: 'Erreur serveur lors de l\'inscription'
@@ -328,7 +322,6 @@ router.delete('/:id/register', auth, async (req, res) => {
       message: 'Désinscription réussie'
     });
   } catch (error) {
-    console.error('Erreur lors de la désinscription:', error);
     res.status(500).json({
       success: false,
       message: 'Erreur serveur lors de la désinscription'
@@ -350,7 +343,6 @@ router.get('/:id/registrations', auth, requireAdmin, async (req, res) => {
       data: registrations
     });
   } catch (error) {
-    console.error('Erreur lors de la récupération des inscriptions:', error);
     res.status(500).json({
       success: false,
       message: 'Erreur serveur lors de la récupération des inscriptions'
@@ -409,7 +401,6 @@ router.get('/stats', auth, requireAdmin, async (req, res) => {
       data: { stats }
     });
   } catch (error) {
-    console.error('Erreur lors de la récupération des statistiques:', error);
     res.status(500).json({
       success: false,
       message: 'Erreur serveur lors de la récupération des statistiques'
@@ -435,7 +426,6 @@ router.get('/weekly', async (req, res) => {
       data: { tournaments }
     });
   } catch (error) {
-    console.error('Erreur lors de la récupération des tournois de la semaine:', error);
     res.status(500).json({
       success: false,
       message: 'Erreur serveur lors de la récupération des tournois de la semaine'
@@ -461,7 +451,6 @@ router.get('/monthly', async (req, res) => {
       data: { tournaments }
     });
   } catch (error) {
-    console.error('Erreur lors de la récupération des tournois du mois:', error);
     res.status(500).json({
       success: false,
       message: 'Erreur serveur lors de la récupération des tournois du mois'
@@ -489,7 +478,6 @@ router.get('/calendar/:year/:month', async (req, res) => {
       data: { tournaments }
     });
   } catch (error) {
-    console.error('Erreur lors de la récupération des tournois du calendrier:', error);
     res.status(500).json({
       success: false,
       message: 'Erreur serveur lors de la récupération des tournois du calendrier'

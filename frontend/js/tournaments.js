@@ -88,7 +88,6 @@ async function createTournament(event) {
             renderCalendar();
         }
     } catch (error) {
-        console.error('Erreur lors de la création du tournoi:', error);
         showMessage('Erreur lors de la création du tournoi: ' + error.message, 'error');
     }
 }
@@ -227,7 +226,6 @@ async function updateTournament(event, tournamentId) {
             loadHomeTournaments();
         }
     } catch (error) {
-        console.error('Erreur lors de la mise à jour du tournoi:', error);
         showMessage('Erreur lors de la mise à jour du tournoi: ' + error.message, 'error');
     }
 }
@@ -263,7 +261,6 @@ async function deleteTournament(tournamentId) {
             loadMyTournaments();
         }
     } catch (error) {
-        console.error('Erreur lors de la suppression du tournoi:', error);
         showMessage('Erreur lors de la suppression du tournoi: ' + error.message, 'error');
     }
 }
@@ -299,7 +296,6 @@ async function getTournamentStats() {
         const response = await api.request('/tournaments/stats');
         return response.data.stats;
     } catch (error) {
-        console.error('Erreur lors de la récupération des statistiques:', error);
         // Retourner des stats par défaut en cas d'erreur
         return {
             totalTournaments: 0,
@@ -360,7 +356,6 @@ async function showStats() {
         `;
         showModal();
     } catch (error) {
-        console.error('Erreur lors de l\'affichage des statistiques:', error);
         showMessage('Erreur lors du chargement des statistiques', 'error');
     }
 }

@@ -13,7 +13,6 @@ async function checkAuth() {
             localStorage.setItem('currentUser', JSON.stringify(currentUser));
             updateAuthUI();
         } catch (error) {
-            console.error('Session invalide:', error);
             // Cookie invalide, nettoyer et déconnecter
             localStorage.removeItem('currentUser');
             currentUser = null;
@@ -32,7 +31,6 @@ function updateAuthUI() {
     const adminBtn = document.getElementById('adminBtn');
     
     if (!authButtons || !userMenu) {
-        console.warn('⚠️ Éléments de navigation non trouvés');
         return;
     }
     
@@ -82,7 +80,6 @@ async function login(event) {
             document.getElementById('loginPassword').value = '';
         }
     } catch (error) {
-        console.error('Erreur de connexion:', error);
         showNotification('Email ou mot de passe incorrect', 'error');
     }
 }
@@ -136,7 +133,6 @@ async function register(event) {
             document.getElementById('confirmPassword').value = '';
         }
     } catch (error) {
-        console.error('Erreur d\'inscription:', error);
         showNotification('Erreur lors de l\'inscription: ' + error.message, 'error');
     }
 }
@@ -146,7 +142,6 @@ async function logout() {
         await api.logout();
         showNotification('Déconnexion réussie', 'success');
     } catch (error) {
-        console.error('Erreur lors de la déconnexion:', error);
         // Forcer la déconnexion locale même en cas d'erreur
         currentUser = null;
         localStorage.removeItem('currentUser');

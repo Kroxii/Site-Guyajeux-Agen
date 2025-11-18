@@ -45,7 +45,6 @@ router.get('/', async (req, res) => {
     });
     
   } catch (error) {
-    console.error('Erreur récupération statistiques:', error);
     res.status(500).json({
       success: false,
       message: 'Erreur lors de la récupération des statistiques'

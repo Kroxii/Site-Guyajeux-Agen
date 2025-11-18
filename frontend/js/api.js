@@ -24,7 +24,6 @@ class ApiService {
             
         return await response.json();
         } catch (error) {
-            console.error('API request error:', error);
             throw error;
         }
     }

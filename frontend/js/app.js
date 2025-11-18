@@ -85,7 +85,6 @@ document.addEventListener('DOMContentLoaded', async function() {
         // Charger les données de la page actuelle
         await loadCurrentPageData();
     } catch (error) {
-        console.error('Erreur lors de l\'initialisation:', error);
         showNotification('Erreur lors de l\'initialisation de l\'application', 'error');
     }
 });
@@ -154,7 +153,6 @@ async function loadCurrentPageData() {
                 break;
         }
     } catch (error) {
-        console.error('Erreur lors du chargement des données:', error);
         showNotification('Erreur lors du chargement', 'error');
     }
 }
@@ -202,7 +200,6 @@ async function checkAuthentication() {
                     return true;
                 }
             } catch (error) {
-                console.warn('⚠️ Session invalide:', error.message);
                 // Cookie invalide, nettoyer
                 localStorage.removeItem('currentUser');
                 currentUser = null;
@@ -210,7 +207,7 @@ async function checkAuthentication() {
             }
         }
     } catch (error) {
-        console.error('❌ Erreur authentification:', error);
+        // Erreur authentification
     }
     
     currentUser = null;
@@ -267,7 +264,6 @@ async function handleLogin(event) {
             throw new Error(response.message || 'Erreur de connexion');
         }
     } catch (error) {
-        console.error('❌ Erreur login:', error);
         showNotification(error.message || 'Erreur lors de la connexion', 'error');
     } finally {
         showLoading(false);
@@ -309,7 +305,6 @@ async function handleRegister(event) {
             throw new Error(response.message || 'Erreur lors de l\'inscription');
         }
     } catch (error) {
-        console.error('Erreur register complète:', error);
         showNotification(error.message || 'Erreur lors de l\'inscription', 'error');
     } finally {
         showLoading(false);
@@ -322,7 +317,7 @@ async function logout() {
             await api.logout();
         }
     } catch (error) {
-        console.error('Erreur logout:', error);
+        // Erreur logout
     } finally {
         currentUser = null;
         localStorage.removeItem('currentUser');
@@ -345,7 +340,6 @@ async function loadInitialData() {
             await loadStats();
         }
     } catch (error) {
-        console.error('Erreur chargement initial:', error);
         showNotification('Erreur lors du chargement des données', 'error');
         tournaments = [];
     } finally {
@@ -380,7 +374,6 @@ async function loadStats() {
         animateCounter(totalGamesEl, stats.totalGames);
         
     } catch (error) {
-        console.error('Erreur chargement statistiques:', error);
         // Garder les valeurs par défaut en cas d'erreur
     }
 }
@@ -426,7 +419,7 @@ async function loadHomeData() {
         
         updateStats();
     } catch (error) {
-        console.error('Erreur chargement accueil:', error);
+        // Erreur chargement accueil
     }
 }
 
@@ -445,7 +438,7 @@ async function loadTournamentsData() {
             }
         }
     } catch (error) {
-        console.error('Erreur chargement tournois:', error);
+        // Erreur chargement tournois
     }
 }
 
@@ -496,7 +489,7 @@ async function loadUserRegistrations() {
             }
         }
     } catch (error) {
-        console.error('Erreur chargement inscriptions:', error);
+        // Erreur chargement inscriptions
     }
 }
 
@@ -520,7 +513,7 @@ async function loadAdminData() {
             renderAdminUsers(adminUsersList, usersResponse);
         }
     } catch (error) {
-        console.error('❌ Erreur chargement admin:', error);
+        // Erreur chargement admin
     }
 }
 
@@ -717,7 +710,6 @@ async function registerForTournament(tournamentId) {
             throw new Error(response.message || 'Erreur lors de l\'inscription');
         }
     } catch (error) {
-        console.error('Erreur inscription tournoi:', error);
         showNotification(error.message || 'Erreur lors de l\'inscription au tournoi', 'error');
     } finally {
         showLoading(false);
@@ -756,7 +748,6 @@ async function cancelRegistration(tournamentId) {
             throw new Error(response.message || 'Erreur lors de la désinscription');
         }
     } catch (error) {
-        console.error('Erreur désinscription tournoi:', error);
         showNotification(error.message || 'Erreur lors de l\'annulation de l\'inscription', 'error');
     } finally {
         showLoading(false);
@@ -808,7 +799,6 @@ async function handleCreateTournament(event) {
             throw new Error('Erreur lors de la création');
         }
     } catch (error) {
-        console.error('Erreur création tournoi:', error);
         showNotification(error.message || 'Erreur lors de la création du tournoi', 'error');
     } finally {
         showLoading(false);
@@ -876,7 +866,6 @@ async function handleEditTournament(event) {
             throw new Error('Erreur lors de la modification');
         }
     } catch (error) {
-        console.error('Erreur modification tournoi:', error);
         showNotification(error.message || 'Erreur lors de la modification du tournoi', 'error');
     } finally {
         showLoading(false);
@@ -924,7 +913,6 @@ async function handleDeleteTournament() {
             throw new Error('Erreur lors de la suppression');
         }
     } catch (error) {
-        console.error('Erreur suppression tournoi:', error);
         showNotification(error.message || 'Erreur lors de la suppression du tournoi', 'error');
     } finally {
         showLoading(false);
