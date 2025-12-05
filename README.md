@@ -465,13 +465,13 @@ Ce projet est sous licence ISC - voir le fichier [LICENSE](LICENSE) pour plus de
 
 ## 👥 Équipe
 
-- **Développement** : Équipe Guyajeux Agen
+- **Développement** : [Kroxii](https://github.com/Kroxii)
 - **Maintenance** : [Kroxii](https://github.com/Kroxii)
 
 ## 📞 Contact
 
-- **Website** : [Guyajeux Agen](https://guyajeux-agen.fr)
-- **Email** : contact@guyajeux-agen.fr
+- **Website** : 
+- **Email** : 
 - **GitHub** : [Kroxii/Site-Guyajeux-Agen](https://github.com/Kroxii/Site-Guyajeux-Agen)
 
 ---
