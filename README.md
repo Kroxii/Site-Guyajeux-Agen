@@ -69,6 +69,160 @@ Une application web fullstack moderne pour la gestion et l'inscription aux tourn
 
 ## 🏗️ Architecture
 
+### 📊 Modèle de données conceptuel
+
+```mermaid
+erDiagram
+    USER ||--o{ REGISTRATION : "s'inscrit"
+    USER ||--o{ TOURNAMENT : "crée"
+    TOURNAMENT ||--o{ REGISTRATION : "reçoit"
+    
+    USER {
+        ObjectId _id PK
+        string name
+        string email UK
+        string password
+        boolean isAdmin
+        boolean isActive
+        date lastLogin
+        string profilePicture
+        object preferences
+        object stats
+        date createdAt
+        date updatedAt
+    }
+    
+    TOURNAMENT {
+        ObjectId _id PK
+        string name
+        string description
+        string game
+        date date
+        number maxPlayers
+        number currentPlayers
+        enum status
+        ObjectId createdBy FK
+        array participants
+        array waitingList
+        array tags
+        boolean isPublic
+        date registrationDeadline
+        date createdAt
+        date updatedAt
+    }
+    
+    REGISTRATION {
+        ObjectId _id PK
+        ObjectId user FK
+        ObjectId tournament FK
+        date registrationDate
+        enum status
+        string notes
+        boolean checkedIn
+        date checkedInAt
+        date createdAt
+        date updatedAt
+    }
+```
+
+### 🗃️ Structure détaillée des entités
+
+#### 👤 **User (Utilisateur)**
+```javascript
+{
+  _id: ObjectId,                    // Identifiant unique
+  name: String,                     // Nom complet (max 100 chars)
+  email: String,                    // Email unique et validé
+  password: String,                 // Mot de passe hashé (min 6 chars)
+  isAdmin: Boolean,                 // Rôle administrateur
+  isActive: Boolean,                // Compte actif
+  lastLogin: Date,                  // Dernière connexion
+  profilePicture: String,           // URL photo de profil
+  preferences: {
+    notifications: Boolean,         // Préférences notifications
+    favoriteGames: [String]         // Jeux favoris
+  },
+  stats: {
+    tournamentsJoined: Number       // Nombre de tournois rejoints
+  },
+  createdAt: Date,                  // Date de création
+  updatedAt: Date                   // Date de modification
+}
+```
+
+#### 🏆 **Tournament (Tournoi)**
+```javascript
+{
+  _id: ObjectId,                    // Identifiant unique
+  name: String,                     // Nom du tournoi (max 200 chars)
+  description: String,              // Description (max 1000 chars)
+  game: String,                     // Nom du jeu (max 100 chars)
+  date: Date,                       // Date et heure du tournoi
+  maxPlayers: Number,               // Nombre maximum de joueurs (2-100)
+  currentPlayers: Number,           // Nombre actuel de participants
+  status: Enum,                     // Statut du tournoi
+  // Valeurs possibles: 'planned', 'registration_open', 
+  // 'registration_closed', 'in_progress', 'completed', 'cancelled'
+  createdBy: ObjectId,              // Créateur (référence User)
+  participants: [{
+    user: ObjectId,                 // Référence User
+    registrationDate: Date,         // Date d'inscription
+    status: Enum                    // 'registered', 'confirmed', 'cancelled', 'no_show'
+  }],
+  waitingList: [{
+    user: ObjectId,                 // Référence User
+    registrationDate: Date          // Date d'inscription en liste d'attente
+  }],
+  tags: [String],                   // Tags pour catégoriser
+  isPublic: Boolean,                // Tournoi public/privé
+  registrationDeadline: Date,       // Date limite d'inscription
+  createdAt: Date,                  // Date de création
+  updatedAt: Date                   // Date de modification
+}
+```
+
+#### 📝 **Registration (Inscription)**
+```javascript
+{
+  _id: ObjectId,                    // Identifiant unique
+  user: ObjectId,                   // Référence User (index composé avec tournament)
+  tournament: ObjectId,             // Référence Tournament
+  registrationDate: Date,           // Date d'inscription
+  status: Enum,                     // Statut de l'inscription
+  // Valeurs possibles: 'pending', 'confirmed', 'cancelled', 
+  // 'waitlisted', 'no_show', 'completed'
+  notes: String,                    // Notes personnelles (max 500 chars)
+  checkedIn: Boolean,               // Présence confirmée
+  checkedInAt: Date,                // Date/heure de confirmation
+  createdAt: Date,                  // Date de création
+  updatedAt: Date                   // Date de modification
+}
+```
+
+### 🔗 Relations et contraintes
+
+#### **Relations principales**
+- **User → Tournament** : Un utilisateur peut créer plusieurs tournois (1:N)
+- **User → Registration** : Un utilisateur peut avoir plusieurs inscriptions (1:N)
+- **Tournament → Registration** : Un tournoi peut avoir plusieurs inscriptions (1:N)
+- **User ↔ Tournament** : Relation many-to-many via Registration
+
+#### **Index et contraintes**
+```javascript
+// Index pour optimisation des performances
+User: { email: 1 }, { isAdmin: 1 }
+Tournament: { date: 1 }, { game: 1 }, { status: 1 }, { createdBy: 1 }
+Registration: { user: 1, tournament: 1 } (unique), { tournament: 1, status: 1 }
+
+// Contraintes de validation
+- Email unique et format valide
+- Mots de passe minimum 6 caractères
+- Nombre de joueurs entre 2 et 100
+- Statuts avec énumérations strictes
+```
+
+### 🏛️ Architecture technique
+
 ```mermaid
 graph TB
     A[Client Browser] --> B[Frontend - HTML/CSS/JS]
